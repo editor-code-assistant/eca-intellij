@@ -26,4 +26,13 @@
     <extensions defaultExtensionNs="com.intellij">
 
     </extensions>
+
+    <actions>
+        <action id="ECA.Hello"
+                class="dev.eca.ecaintellij.HelloAction"
+                text="ECA: Hello"
+                description="Logs hello from ECA to event log">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
