@@ -24,7 +24,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <postStartupActivity implementation="com.github.ericdallo.clj4intellij.extension.NREPLStartup"/>
     </extensions>
 
     <actions>
@@ -35,4 +35,9 @@
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>
+
+    <applicationListeners>
+        <listener topic="com.intellij.ide.AppLifecycleListener"
+                  class="com.github.ericdallo.clj4intellij.listener.ClojureClassLoaderListener"/>
+    </applicationListeners>
 </idea-plugin>

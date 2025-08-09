@@ -2,6 +2,7 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("dev.clojurephant.clojure") version "0.8.0"
 }
 
 group = "dev.eca"
@@ -12,9 +13,14 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+    maven {
+        name = "Clojars"
+        url = uri("https://repo.clojars.org")
+    }
 }
 
 dependencies {
+    implementation ("com.github.ericdallo:clj4intellij:0.8.0")
     intellijPlatform {
         val type = providers.gradleProperty("platformType")
         val ver  = providers.gradleProperty("platformVersion")
@@ -46,4 +52,11 @@ kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
+}
+
+clojure.builds.named("main") {
+    classpath.from(sourceSets.main.get().runtimeClasspath.asPath)
+    checkAll()
+    aotAll()
+    reflection.set("fail")
 }
