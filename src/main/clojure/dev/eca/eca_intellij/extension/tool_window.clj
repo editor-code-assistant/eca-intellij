@@ -1,19 +1,19 @@
 (ns dev.eca.eca-intellij.extension.tool-window
   (:require
-   [com.github.ericdallo.clj4intellij.extension :refer [def-extension]])
+   [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
+   [seesaw.core :as seesaw]
+   [seesaw.mig :as mig])
   (:import
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.wm ToolWindow ToolWindowAnchor ToolWindowFactory]
    [com.intellij.ui.content ContentFactory]
-   [dev.eca.eca_intellij Icons]
-   [java.awt BorderLayout]
-   [javax.swing JLabel JPanel]))
+   [dev.eca.eca_intellij Icons]))
 
 (set! *warn-on-reflection* true)
 
 (defn ^:private create-content-panel [^Project _project]
-  (doto (JPanel. (BorderLayout.))
-    (.add (JLabel. "ECA chat - coming soon") BorderLayout/CENTER)))
+  (mig/mig-panel
+   :items [[(seesaw/label "Coming soon") ""]]))
 
 (def-extension EcaToolWindowFactory []
   ToolWindowFactory

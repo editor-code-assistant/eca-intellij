@@ -31,6 +31,7 @@ dependencies {
     implementation ("com.github.ericdallo:clj4intellij:0.8.0")
     implementation ("com.rpl:proxy-plus:0.0.9")
     implementation ("nrepl:nrepl:1.3.1")
+    implementation ("seesaw:seesaw:1.5.0")
 }
 
 sourceSets {
