@@ -1,14 +1,22 @@
+fun properties(key: String) = providers.gradleProperty(key)
+fun environment(key: String) = providers.environmentVariable(key)
+fun prop(name: String): String {
+    return properties(name).get()
+}
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("org.jetbrains.intellij.platform") version "2.5.0"
     id("dev.clojurephant.clojure") version "0.8.0"
+    id("org.jetbrains.changelog") version "1.3.1"
 }
 
-group = "dev.eca"
-version = "1.0-SNAPSHOT"
+group = prop("pluginGroup")
+version = prop("pluginVersion")
 
 repositories {
+    mavenLocal()
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
@@ -20,7 +28,10 @@ repositories {
 }
 
 dependencies {
+    implementation ("org.clojure:clojure:1.12.1")
     implementation ("com.github.ericdallo:clj4intellij:0.8.0")
+    implementation ("com.rpl:proxy-plus:0.0.9")
+    implementation ("nrepl:nrepl:1.3.1")
     intellijPlatform {
         val type = providers.gradleProperty("platformType")
         val ver  = providers.gradleProperty("platformVersion")
@@ -32,25 +43,48 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "251"
+            sinceBuild = prop("pluginSinceBuild")
         }
 
-        changeNotes = """
-            Initial version
-        """.trimIndent()
+        // Get the latest available change notes from the changelog file
+        changeNotes.set(provider {
+            changelog.run {
+                getOrNull(prop("pluginVersion")) ?: getLatest()
+            }.toHTML()
+        })
     }
 }
+
+changelog {
+    version.set(properties("pluginVersion"))
+    groups.set(emptyList())
+}
+
+java {
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.register("classpath") {
+    doFirst {
+        println(sourceSets["main"].compileClasspath.asPath)
+    }
+}
+
+
 
 tasks {
-    withType<JavaCompile> {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
+    compileKotlin {
+        kotlinOptions {
+            jvmTarget = "21"
+            apiVersion = "1.9"
+            languageVersion = "1.9"
+            freeCompilerArgs = listOf("-Xjvm-default=all")
+        }
     }
-}
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    wrapper {
+        gradleVersion = prop("gradleVersion")
     }
 }
 

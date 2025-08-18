@@ -1,5 +1,4 @@
-package dev.eca.ecaintellij
-
+package dev.eca.eca_intellij
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
