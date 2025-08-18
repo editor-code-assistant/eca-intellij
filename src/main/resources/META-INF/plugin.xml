@@ -1,5 +1,4 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
-<idea-plugin>
+<idea-plugin require-restart="true">
     <id>dev.eca.eca-intellij</id>
     <name>ECA</name>
     <vendor url="https://github.com/editor-code-assistant/eca-intellij">eca-intellij</vendor>
@@ -10,6 +9,12 @@
     <depends>com.intellij.modules.platform</depends>
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.github.ericdallo.clj4intellij.extension.NREPLStartup"/>
+        <postStartupActivity id="eca-init-db" implementation="dev.eca.eca_intellij.extension.init_db_startup.InitDBStartup"/>
+        <statusBarWidgetFactory
+            id="EcaStatusBar"
+            displayName="ECA"
+            order="first"
+            implementation="dev.eca.eca_intellij.extension.status_bar_factory.EcaStatusBarFactory" />
     </extensions>
 
     <applicationListeners>

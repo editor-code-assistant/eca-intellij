@@ -1,0 +1,5 @@
+{:classpath-config-paths ["ericdallo/clj4intellij"]
+ :project-specs [{:classpath-cmd ["./gradlew" "-q" "classpath"]
+                  :project-path "build.gradle.kts"}
+                 {:classpath-cmd ["clojure" "-Spath"]
+                  :project-path "deps.edn"}]}
