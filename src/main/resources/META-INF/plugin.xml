@@ -15,6 +15,11 @@
             displayName="ECA"
             order="first"
             implementation="dev.eca.eca_intellij.extension.status_bar_factory.EcaStatusBarFactory" />
+        <toolWindow
+            id="ECA"
+            icon="com.github.clojure_repl.intellij.Icons.ECA"
+            secondary="true"
+            factoryClass="dev.eca.eca_intellij.extension.tool_window.EcaToolWindowFactory" />
     </extensions>
 
     <applicationListeners>
