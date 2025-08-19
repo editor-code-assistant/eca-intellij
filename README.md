@@ -11,3 +11,11 @@
 ![ECA Intellij](images/demo.png)
 
 ---
+
+## Development
+
+`bb install-plugin <pathToYourIntellij>` to install the plugin locally.
+
+or
+
+`bb build-plugin` to manually install via intellij the .zip.
