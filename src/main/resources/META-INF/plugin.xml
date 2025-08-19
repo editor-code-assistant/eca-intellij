@@ -9,7 +9,10 @@
     <depends>com.intellij.modules.platform</depends>
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.github.ericdallo.clj4intellij.extension.NREPLStartup"/>
-        <postStartupActivity id="eca-init-db" implementation="dev.eca.eca_intellij.extension.init_db_startup.InitDBStartup"/>
+        <postStartupActivity id="EcaInitDb" implementation="dev.eca.eca_intellij.extension.init_db_startup.InitDBStartup"/>
+        <postStartupActivity order="after EcaInitDb"
+                             id="EcaStartServer"
+                             implementation="dev.eca.eca_intellij.extension.init_server_startup.InitServerStartup"/>
         <statusBarWidgetFactory
             id="EcaStatusBar"
             displayName="ECA"

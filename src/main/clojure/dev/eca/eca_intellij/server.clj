@@ -3,11 +3,11 @@
    [babashka.process :as p]
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [dev.eca.eca-intellij.db :as db]
    [com.github.ericdallo.clj4intellij.logger :as logger]
    [com.github.ericdallo.clj4intellij.tasks :as tasks]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.config :as config]
+   [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.notification :as notification])
   (:import
    [com.github.ericdallo.clj4intellij ClojureClassLoader]
@@ -168,3 +168,6 @@
     (db/assoc-in project [:status] :shutting-down)
     @(api/request! client [:shutdown {}])
     (clean-up-server project)))
+
+(defn status [^Project project]
+  (db/get-in project [:status]))
