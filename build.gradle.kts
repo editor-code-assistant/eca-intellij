@@ -32,6 +32,11 @@ dependencies {
     implementation ("com.rpl:proxy-plus:0.0.9")
     implementation ("nrepl:nrepl:1.3.1")
     implementation ("seesaw:seesaw:1.5.0")
+    implementation ("babashka:process:0.6.23")
+    implementation ("com.github.clojure-lsp:lsp4clj:1.13.1")
+    implementation ("org.clojure:core.async:1.5.648") {
+        because("issue https://clojure.atlassian.net/browse/ASYNC-248")
+    }
 }
 
 sourceSets {

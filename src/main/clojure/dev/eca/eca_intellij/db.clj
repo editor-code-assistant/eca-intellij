@@ -8,6 +8,8 @@
 (def ^:private empty-project
   {:status :disconnected
    :downloaded-server-path nil
+   :client nil
+   :server-process nil
    :project nil
    :on-status-changed-fns []})
 

@@ -20,6 +20,7 @@
             icon="com.github.clojure_repl.intellij.Icons.ECA"
             secondary="true"
             factoryClass="dev.eca.eca_intellij.extension.tool_window.EcaToolWindowFactory" />
+        <notificationGroup id="ECA notifications" displayType="BALLOON"/>
     </extensions>
 
     <applicationListeners>

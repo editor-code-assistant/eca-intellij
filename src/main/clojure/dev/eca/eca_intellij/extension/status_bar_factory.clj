@@ -2,7 +2,8 @@
   (:require
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
    [com.rpl.proxy-plus :refer [proxy+]]
-   [dev.eca.eca-intellij.db :as db])
+   [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.server :as server])
   (:import
    [com.intellij.ide DataManager]
    [com.intellij.openapi.actionSystem DefaultActionGroup]
@@ -30,19 +31,16 @@
     (.updateWidget status-bar widget-id)
     (.updateWidget ^StatusBarWidgetsManager (.getService project StatusBarWidgetsManager) factory)))
 
-(defn ^:private restart-server-action [^Project _project]
+(defn ^:private restart-server-action [^Project project]
   (proxy+
    ["Restart server"]
    DumbAwareAction
     (actionPerformed [_ _event]
-      ;; (server/shutdown! project)
-      ;; (server/start! project)
-      )))
+      (server/shutdown! project)
+      (server/start! project))))
 
-(defn ^:private status-bar-title [_project]
-  ;; TODO
-  #_(str "ECA: " (name (lsp-client/server-status project)))
-  "ECA: ...")
+(defn ^:private status-bar-title [project]
+  (str "ECA: " (name (db/get-in project [:status]))))
 
 (def-extension EcaStatusBarFactory []
   StatusBarWidgetFactory
