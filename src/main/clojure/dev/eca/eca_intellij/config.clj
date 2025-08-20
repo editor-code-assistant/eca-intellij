@@ -10,6 +10,9 @@
 (defn ^:private plugin-path* ^File []
   (io/file (com.intellij.openapi.application.PathManager/getPluginsPath) "eca-intellij"))
 
+(defn dev? []
+  (boolean (io/resource "is-dev" (.getClassLoader clojure.lang.Symbol))))
+
 (def plugin-path (memoize plugin-path*))
 
 (defn download-server-path ^File []

@@ -36,7 +36,7 @@
                              (assoc db :status :disconnected
                                     :client nil
                                     :server-process nil)))
-  (run! #(% project :disconnected) (:on-status-changed-fns @db/db*)))
+  (run! #(% project :disconnected) (db/get-in project [:on-status-changed-fns])))
 
 (defn ^:private os-name []
   (let [os-name (string/lower-case (System/getProperty "os.name" "generic"))]
@@ -123,7 +123,7 @@
 
 (defn start! [^Project project]
   (db/assoc-in project [:status] :connecting)
-  (run! #(% project :connecting) (:on-status-changed-fns @db/db*))
+  (run! #(% project :connecting) (db/get-in project [:on-status-changed-fns]))
   (tasks/run-background-task!
    project
    "ECA startup"
@@ -154,12 +154,12 @@
                                            :message "There is no server downloaded and there was a network issue trying to download the latest server"}))
 
        (db/assoc-in project [:status] :connected)
-       (run! #(% project :connected) (:on-status-changed-fns @db/db*))
+       (run! #(% project :connected) (db/get-in project [:on-status-changed-fns]))
         ;; For race conditions when server starts too fast
         ;; and other places that listen didn't setup yet
        (future
          (Thread/sleep 1000)
-         (run! #(% project :connected) (:on-status-changed-fns @db/db*)))
+         (run! #(% project :connected) (db/get-in project [:on-status-changed-fns])))
        (logger/info "Initialized ECA"))))
   true)
 
@@ -167,6 +167,7 @@
   (when-let [client (api/connected-client project)]
     (db/assoc-in project [:status] :shutting-down)
     @(api/request! client [:shutdown {}])
+    (api/notify! client [:exit {}])
     (clean-up-server project)))
 
 (defn status [^Project project]
