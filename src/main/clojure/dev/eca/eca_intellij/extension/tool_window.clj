@@ -15,6 +15,7 @@
    [com.intellij.ui.content ContentFactory]
    [com.intellij.ui.jcef JBCefBrowser JBCefJSQuery]
    [dev.eca.eca_intellij Icons]
+   [java.io IOException InputStream]
    [java.net URLConnection]
    [org.cef CefApp]
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
@@ -26,52 +27,52 @@
 
 (defn ^:private read-response [data-out bytes-to-read ^IntRef bytes-read state*]
   (boolean
-   (when-let [input-stream (when-let [^URLConnection conn (:conn @state*)]
-                             (.getInputStream conn))]
-     (if (> (.available input-stream) 0)
-       (do
-         (.set bytes-read
-               (.read input-stream data-out 0 (min (.available input-stream) bytes-to-read)))
-         true)
-       (do
-         (.close input-stream)
-         false)))))
+   (when-let [^InputStream input-stream (:input-stream @state*)]
+     (let [available (.available input-stream)
+           max-bytes (min available bytes-to-read)]
+       (if (> available 0)
+         (let [byte (.read input-stream data-out 0 max-bytes)]
+           (.set bytes-read byte)
+           true)
+         (do
+           (.close input-stream)
+           false))))))
 
 (defn ^:private response-headers [^CefResponse resp ^IntRef resp-length current-url* state*]
-  (when-let [url @current-url*]
-    (cond
-      (string/includes? url "css")
-      (.setMimeType resp "text/css")
+  (try
+    (when-let [conn ^URLConnection (:conn @state*)]
+      (let [url (str (.getURL conn))]
+        (cond
+          (string/includes? url "css")
+          (.setMimeType resp "text/css")
 
-      (string/includes? url "js")
-      (.setMimeType resp "text/javascript")
+          (string/includes? url "js")
+          (.setMimeType resp "text/javascript")
 
-      (string/includes? url "html")
-      (.setMimeType resp "text/html")))
+          (string/includes? url "html")
+          (.setMimeType resp "text/html")
 
-  (if-let [conn ^URLConnection (:conn @state*)]
-    (do
-      (.set resp-length (or (some-> (.getInputStream conn)
-                                    (.available))
-                            0))
+          :else
+          (.setMimeType resp (.getContentType conn))))
+
+      (.set resp-length (.available ^InputStream (:input-stream @state*)))
       (.setStatus resp 200))
-    (do
-      (.setError resp (CefLoadHandler$ErrorCode/ERR_FAILED))
-      (.setStatusText resp "Connection is null")
-      (.setStatus resp 500))))
+    (catch IOException e
+      (.setStatus resp 404)
+      (.setError resp CefLoadHandler$ErrorCode/ERR_FILE_NOT_FOUND)
+      (.setStatusText resp (.getLocalizedMessage e)))))
 
 (defn ^:private process-request [^CefRequest req ^CefCallback callback state* current-url*]
   (boolean
    (when-let [url (.getURL req)]
-     (let [resource-path (-> url
-                             (string/replace "http://eca" "webview")
-                             (string/replace "http://localhost:5173" "webview"))
-           new-url (io/resource resource-path (.getClassLoader clojure.lang.Symbol))]
-       (logger/info "-->" resource-path)
-       (swap! state* assoc :status :opened
-              :conn (when new-url
-                      (.openConnection new-url)))
-       (reset! current-url* url)
+     (let [resource-path (string/replace url "http://eca" "webview")
+           new-url (io/resource resource-path (.getClassLoader clojure.lang.Symbol))
+           conn (when new-url (.openConnection new-url))
+           is (when conn (.getInputStream conn))]
+       (swap! state* assoc
+              :input-stream is
+              :conn conn)
+       (reset! current-url* new-url)
        (.Continue callback)
        true))))
 
@@ -80,7 +81,7 @@
                     (.setOffScreenRendering true) ;; TODO move to config
                     (.build))
         webview (JBCefJSQuery/create browser)
-        state* (atom {:status :closed})
+        state* (atom {})
         current-url* (atom nil)]
     (db/assoc-in project [:webview-browser] browser)
     (Disposer/register project browser)
@@ -102,10 +103,9 @@
            (readResponse [_ data-out bytes-to-read bytes-read _callback]
              (read-response data-out bytes-to-read bytes-read state*))
            (cancel [_]
-             (when-let [^URLConnection conn (:conn @state*)]
-               (.close (.getInputStream conn)))
-             (swap! state* assoc :status :closed)
-             (swap! state* dissoc :conn))))))
+             (when-let [^InputStream is (:input-stream @state*)]
+               (.close is))
+             (swap! state* dissoc :input-stream))))))
     browser))
 
 (defn ^:private create-tool-window-content
@@ -114,13 +114,14 @@
   (System/setProperty "ide.browser.jcef.contextMenu.devTools.enabled" "true")
   (let [browser (create-webview project)
         url (if (config/dev?)
-              "http://localhost:5173/index.html"
+              "http://localhost:5173/intellij_index.html"
               "http://eca/index.html")
         content (.createContent (ContentFactory/getInstance) (.getComponent browser) nil false)
         actions (->> [(.getAction (ActionManager/getInstance) "MaximizeToolWindow")]
                      (remove nil?))]
     (.addContent (.getContentManager tool-window) content)
     (.setTitleActions tool-window actions)
+    (logger/info "creating tool window")
     (.loadURL browser url)))
 
 (def-extension EcaToolWindowFactory []
@@ -148,5 +149,8 @@
   (getAnchor [_] ToolWindowAnchor/RIGHT))
 
 (comment
+  (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://eca/foo")
+  (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://eca/index.html")
+  (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://localhost:5173")
   ;; open devtools
   (.openDevtools (db/get-in (first (db/all-projects)) [:webview-browser])))
