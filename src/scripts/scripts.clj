@@ -51,5 +51,6 @@
       (println "Installed!"))))
 
 (defn publish-plugin []
-  (shell "cd eca-webview && npm run build")
+  (shell "npm install --prefix eca-webview")
+  (shell "npm run build --prefix eca-webview")
   #_(shell "./gradlew clean publishPlugin"))

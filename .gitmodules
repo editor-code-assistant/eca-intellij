@@ -1,0 +1,3 @@
+[submodule "eca-webview"]
+	path = eca-webview
+	url = git@github.com:editor-code-assistant/eca-webview.git
