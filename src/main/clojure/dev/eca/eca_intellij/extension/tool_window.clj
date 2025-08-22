@@ -74,7 +74,9 @@
   (getAnchor [_] ToolWindowAnchor/RIGHT))
 
 (comment
+  ;; prod
   (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://eca/index.html")
-  (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://localhost:5173")
+  ;; dev
+  (.loadURL (db/get-in (first (db/all-projects)) [:webview-browser]) "http://localhost:5173/intellij_index.html")
   ;; open devtools
   (.openDevtools (db/get-in (first (db/all-projects)) [:webview-browser])))
