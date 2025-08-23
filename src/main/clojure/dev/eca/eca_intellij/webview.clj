@@ -7,11 +7,59 @@
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
+   [com.intellij.openapi.editor.colors EditorColorsManager]
    [com.intellij.openapi.project Project]
+   [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
+   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
    [org.cef.browser CefBrowser]))
 
 (set! *warn-on-reflection* true)
+
+(defn ^:private hex [jb-color]
+  (str "#" (ColorUtil/toHex jb-color)))
+
+(def ^:private theme-css-map
+  {"editor-bg" (hex (.getDefaultBackground (.getGlobalScheme (EditorColorsManager/getInstance))))
+   "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
+   "panel-bg" (hex (JBColor/namedColor "Editor.background"))
+   "panel-border" (hex (JBUI$CurrentTheme$ToolWindow/borderColor))
+   "input-bg" (hex (JBColor/namedColor "OptionPane.background"))
+   "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
+   "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
+   "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBackground"))
+
+   "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
+   ;; TODO finish colors map with JBColor
+   ;; "success-fg"
+   ;; "warning-fg"
+   ;; "error-fg"
+   ;; "warning-message-fg"
+   ;; "confirm-action-bg"
+   ;; "confirm-action-fg"
+   ;; "diff-unchanged-bg"
+   ;; "diff-insert-bg"
+   ;; "delete-bg"
+   ;; "tooltip-bg"
+   ;; "tooltip-fg"
+   ;; "toggle-slider-bg"
+   ;; "toggle-icon-bg"
+   ;; "toggle-bg"
+   ;; "context-file-fg"
+   ;; "context-directory-fg"
+   ;; "context-web-fg"
+   ;; "context-repo-map-fg"
+   ;; "context-mcp-resource-fg"
+   })
+
+(defn theme-css ^String []
+  (str ":root {\n"
+       (reduce
+        (fn [s [name value]]
+          (str s (format "--intellij-%s: %s;\n" name value)))
+        ""
+        theme-css-map)
+       "}"))
 
 (defn ^:private send-msg! [^CefBrowser cef-browser msg]
   (.executeJavaScript cef-browser

@@ -124,7 +124,9 @@
     (tasks/set-progress indicator "ECA: Initializing...")
     (let [request-initiatilize (api/request! client [:initialize
                                                      {:initialization-options (db/get-in project [:settings])
-                                                      :capabilities client-capabilities}])]
+                                                      :capabilities client-capabilities
+                                                      :workspace-folders [{:name (.getName project)
+                                                                           :uri (str (.toURI (io/file (.getBasePath project))))}]}])]
       (loop [count 0]
         (Thread/sleep 500)
         (cond

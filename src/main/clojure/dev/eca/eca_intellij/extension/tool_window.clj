@@ -10,10 +10,8 @@
    [com.intellij.openapi.project DumbAwareAction Project]
    [com.intellij.openapi.util Disposer]
    [com.intellij.openapi.wm ToolWindow ToolWindowAnchor ToolWindowFactory]
-   [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.content ContentFactory]
    [com.intellij.ui.jcef JBCefBrowser JBCefJSQuery]
-   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
    [dev.eca.eca_intellij Icons]
    [dev.eca.eca_intellij EcaSchemeHandlerFactory]
    [org.cef CefApp]
@@ -23,51 +21,6 @@
    [org.cef.network CefResponse]))
 
 (set! *warn-on-reflection* true)
-
-(defn ^:private hex [jb-color]
-  (str "#" (ColorUtil/toHex jb-color)))
-
-(def ^:private theme-css-map
-  {"editor-bg" (hex (JBColor/namedColor "Panel.background"))
-   "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "panel-bg" (hex (JBColor/namedColor "OptionPane.background"))
-   "panel-border" (hex (JBUI$CurrentTheme$ToolWindow/borderColor))
-   "input-bg" (hex (JBColor/namedColor "EditorTabs.background"))
-   "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
-   "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBackground"))
-
-   "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   ;; TODO finish colors map with JBColor
-   ;; "success-fg"
-   ;; "warning-fg"
-   ;; "error-fg"
-   ;; "warning-message-fg"
-   ;; "confirm-action-bg"
-   ;; "confirm-action-fg"
-   ;; "diff-unchanged-bg"
-   ;; "diff-insert-bg"
-   ;; "delete-bg"
-   ;; "tooltip-bg"
-   ;; "tooltip-fg"
-   ;; "toggle-slider-bg"
-   ;; "toggle-icon-bg"
-   ;; "toggle-bg"
-   ;; "context-file-fg"
-   ;; "context-directory-fg"
-   ;; "context-web-fg"
-   ;; "context-repo-map-fg"
-   ;; "context-mcp-resource-fg"
-   })
-
-(defn ^:private theme-css ^String []
-  (str ":root {\n"
-       (reduce
-        (fn [s [name value]]
-          (str s (format "--intellij-%s: %s;\n" name value)))
-        ""
-        theme-css-map)
-       "}"))
 
 (defn ^:private read-response
   "Stream the response in chunks honoring bytes-to-read. Returns true while there is
@@ -96,7 +49,7 @@
         (proxy+ [] CefResourceHandler
           (processRequest [_ _req ^CefCallback callback]
             (reset! offset* 0)
-            (reset! bytes* (.getBytes (theme-css) "UTF-8"))
+            (reset! bytes* (.getBytes (webview/theme-css) "UTF-8"))
             (.Continue callback)
             true)
           (getResponseHeaders [_ ^CefResponse resp ^IntRef length _redirect-url]
