@@ -28,14 +28,16 @@
   (str "#" (ColorUtil/toHex jb-color)))
 
 (def ^:private theme-css-map
-  {"editor-bg" (hex (JBColor/namedColor "EditorTabs.background"))
+  {"editor-bg" (hex (JBColor/namedColor "Panel.background"))
    "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "panel-bg" (hex (JBColor/namedColor "SidePanel.background"))
+   "panel-bg" (hex (JBColor/namedColor "OptionPane.background"))
    "panel-border" (hex (JBUI$CurrentTheme$ToolWindow/borderColor))
-   "input-bg" (hex (JBColor/namedColor "Panel.background"))
+   "input-bg" (hex (JBColor/namedColor "EditorTabs.background"))
    "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
    "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
    "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBackground"))
+
+   "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
    ;; TODO finish colors map with JBColor
    ;; "success-fg"
    ;; "warning-fg"
@@ -46,7 +48,6 @@
    ;; "diff-unchanged-bg"
    ;; "diff-insert-bg"
    ;; "delete-bg"
-   ;; "item-selectable-fg"
    ;; "tooltip-bg"
    ;; "tooltip-fg"
    ;; "toggle-slider-bg"

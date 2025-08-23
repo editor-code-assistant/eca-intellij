@@ -14,7 +14,8 @@
 
 (set! *warn-on-reflection* true)
 
-(defmulti chat-content-received (fn [_context {:keys [token]}] token))
+(defmulti chat-content-received (constantly :default))
+(defmulti tool-server-updated (constantly :default))
 
 (defn ^:private receive-message
   [client context message]
@@ -110,6 +111,7 @@
     (protocols.endpoint/log this :messages "received notification:" notif)
     (case method
       "chat/contentReceived" (chat-content-received context params)
+      "tool/serverUpdated" (tool-server-updated context params)
 
       (logger/warn "Unknown LSP notification method" method))))
 

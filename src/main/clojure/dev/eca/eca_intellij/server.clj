@@ -75,6 +75,8 @@
         dest-server-file download-path
         dest-path (.getCanonicalPath dest-server-file)]
     (logger/info "Downloading eca from" uri)
+    (when (.exists dest-server-file)
+      (io/delete-file dest-server-file true))
     (unzip-file (io/input-stream uri) dest-server-file)
     (doto (io/file dest-server-file)
       (.setWritable true)
@@ -96,12 +98,26 @@
   (logger/info "Spawning eca server process using path" server-path)
   (tasks/set-progress indicator "ECA: Starting...")
   (let [trace-level (keyword (db/get-in project [:settings :trace-level]))
-        process (p/process [server-path "server"]
+        process (p/process [server-path "server" "--verbose"]
                            {:dir (.getBasePath project)
-                            :env (EnvironmentUtil/getEnvironmentMap)
-                            :err :string})
+                            :env (EnvironmentUtil/getEnvironmentMap)})
         client (api/client (:in process) (:out process) trace-level)]
     (db/assoc-in project [:server-process] process)
+    ;; Consume and log stderr stream line-by-line, while buffering it for potential notifications
+    (let [stderr-buffer (StringBuilder.)]
+      (db/assoc-in project [:server-stderr-buffer] stderr-buffer)
+      (future
+        (try
+          (with-open [r (io/reader (:err process))]
+            (doseq [line (line-seq r)]
+              (locking stderr-buffer
+                (.append stderr-buffer line)
+                (.append stderr-buffer \n))
+              (logger/info "stderr:" line)))
+          (catch Throwable _e
+            ;; Swallow errors while reading stderr to avoid interfering with startup
+            ))))
+
     (api/start-client! client {:progress-indicator indicator
                                :project project})
 
@@ -117,7 +133,8 @@
           (notification/show-notification! {:project project
                                             :type :error
                                             :title "ECA process error"
-                                            :message @(:err process)})
+                                            :message (let [sb (db/get-in project [:server-stderr-buffer])]
+                                                       (when sb (locking sb (str sb))))})
 
           (and (realized? request-initiatilize)
                (p/alive? process))
