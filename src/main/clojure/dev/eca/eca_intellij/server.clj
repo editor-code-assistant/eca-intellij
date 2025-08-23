@@ -33,10 +33,10 @@
     (when (some-> server-process p/alive?)
       (p/destroy server-process)))
   (db/update-in project [] (fn [db]
-                             (assoc db :status :disconnected
+                             (assoc db :status :stopped
                                     :client nil
                                     :server-process nil)))
-  (run! #(% project :disconnected) (db/get-in project [:on-status-changed-fns])))
+  (run! #(% project :stopped) (db/get-in project [:on-status-changed-fns])))
 
 (defn ^:private os-name []
   (let [os-name (string/lower-case (System/getProperty "os.name" "generic"))]
@@ -84,6 +84,14 @@
     (db/assoc-in project [:downloaded-server-path] dest-path)
     (logger/info "Downloaded eca to" dest-path)))
 
+(defn ^:private on-initialized [result project]
+  (db/update-in project [:session] (fn [_]
+                                     {:models (:models result)
+                                      :chat-behaviors (:chat-behaviors result)
+                                      :chat-selected-behavior (:chat-default-behavior result)
+                                      :chat-selected-model (:chat-default-model result)
+                                      :welcome-message (:chat-welcome-message result)})))
+
 (defn ^:private spawn-server! [^Project project indicator server-path]
   (logger/info "Spawning eca server process using path" server-path)
   (tasks/set-progress indicator "ECA: Starting...")
@@ -114,7 +122,8 @@
           (and (realized? request-initiatilize)
                (p/alive? process))
           (do (api/notify! client [:initialized {}])
-              (db/assoc-in project [:client] client))
+              (db/assoc-in project [:client] client)
+              (on-initialized (deref request-initiatilize) project))
 
           :else
           (do
@@ -122,8 +131,8 @@
             (recur (inc count))))))))
 
 (defn start! [^Project project]
-  (db/assoc-in project [:status] :connecting)
-  (run! #(% project :connecting) (db/get-in project [:on-status-changed-fns]))
+  (db/assoc-in project [:status] :starting)
+  (run! #(% project :starting) (db/get-in project [:on-status-changed-fns]))
   (tasks/run-background-task!
    project
    "ECA startup"
@@ -153,19 +162,19 @@
                                            :title "ECA download error"
                                            :message "There is no server downloaded and there was a network issue trying to download the latest server"}))
 
-       (db/assoc-in project [:status] :connected)
-       (run! #(% project :connected) (db/get-in project [:on-status-changed-fns]))
+       (db/assoc-in project [:status] :running)
+       (run! #(% project :running) (db/get-in project [:on-status-changed-fns]))
         ;; For race conditions when server starts too fast
         ;; and other places that listen didn't setup yet
        (future
          (Thread/sleep 1000)
-         (run! #(% project :connected) (db/get-in project [:on-status-changed-fns])))
+         (run! #(% project :running) (db/get-in project [:on-status-changed-fns])))
        (logger/info "Initialized ECA"))))
   true)
 
 (defn shutdown! [^Project project]
   (when-let [client (api/connected-client project)]
-    (db/assoc-in project [:status] :shutting-down)
+    (db/assoc-in project [:status] :stopped)
     @(api/request! client [:shutdown {}])
     (api/notify! client [:exit {}])
     (clean-up-server project)))

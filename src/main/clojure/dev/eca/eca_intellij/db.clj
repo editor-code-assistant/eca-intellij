@@ -6,11 +6,17 @@
 (set! *warn-on-reflection* true)
 
 (def ^:private empty-project
-  {:status :disconnected
+  {:status :stopped
    :downloaded-server-path nil
    :client nil
    :server-process nil
    :project nil
+   :session {:models []
+             :chat-behaviors []
+             :chat-selected-behavior nil
+             :chat-selected-model nil
+             :welcome-message ""
+             :mcp-servers {}}
    :on-status-changed-fns []})
 
 (defonce db* (atom {:projects {}}))

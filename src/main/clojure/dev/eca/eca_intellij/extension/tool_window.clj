@@ -1,10 +1,10 @@
 (ns dev.eca.eca-intellij.extension.tool-window
   (:require
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
-   [com.github.ericdallo.clj4intellij.logger :as logger]
    [com.rpl.proxy-plus :refer [proxy+]]
    [dev.eca.eca-intellij.config :as config]
-   [dev.eca.eca-intellij.db :as db])
+   [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.webview :as webview])
   (:import
    [com.intellij.openapi.actionSystem ActionManager]
    [com.intellij.openapi.project DumbAwareAction Project]
@@ -18,9 +18,9 @@
    [dev.eca.eca_intellij EcaSchemeHandlerFactory]
    [org.cef CefApp]
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
-   [org.cef.handler CefResourceHandler]
+   [org.cef.handler CefLoadHandlerAdapter CefResourceHandler]
    [org.cef.misc IntRef]
-   [org.cef.network CefRequest CefResponse]))
+   [org.cef.network CefResponse]))
 
 (set! *warn-on-reflection* true)
 
@@ -87,20 +87,17 @@
         (.set bytes-read 0)
         false))))
 
-(defn ^:private process-request [^CefRequest req ^CefCallback callback]
-  (.Continue callback)
-  true)
-
 (defn ^:private eca-theme-scheme-handler []
   (proxy+ [] CefSchemeHandlerFactory
     (create [_ _browser _frame _scheme _req]
       (let [offset* (atom 0)
             bytes* (atom nil)]
         (proxy+ [] CefResourceHandler
-          (processRequest [_ req callback]
+          (processRequest [_ _req ^CefCallback callback]
             (reset! offset* 0)
             (reset! bytes* (.getBytes (theme-css) "UTF-8"))
-            (process-request req callback))
+            (.Continue callback)
+            true)
           (getResponseHeaders [_ ^CefResponse resp ^IntRef length _redirect-url]
             (.setMimeType resp "text/css")
             (.setStatus resp 200)
@@ -109,19 +106,36 @@
             (read-response data-out bytes-to-read bytes-read @bytes* offset*))
           (cancel [_]))))))
 
+(defn ^:private browser-javascript ^String [^JBCefJSQuery js-query]
+  (format (str "window.postMessageToEditor = function(message) {"
+               "  const msg = JSON.stringify(message);"
+               "  %s"
+               "}")
+          (.inject js-query "msg")))
+
 (defn ^:private create-webview ^JBCefBrowser [^Project project]
   (let [browser (-> (JBCefBrowser/createBuilder)
                     (.setOffScreenRendering true) ;; TODO move to config
                     (.build))
-        webview (JBCefJSQuery/create browser)]
+        js-query (JBCefJSQuery/create browser)
+        cef-browser (.getCefBrowser browser)]
     (db/assoc-in project [:webview-browser] browser)
     (Disposer/register project browser)
-    (.addHandler webview (fn [msg]
-                           (logger/info "----->" msg)))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca" (EcaSchemeHandlerFactory.))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca-theme" (eca-theme-scheme-handler))
+    (.addHandler js-query (fn [msg] (webview/handle msg project)))
+    (.addLoadHandler
+     (.getJBCefClient browser)
+     (proxy+ [] CefLoadHandlerAdapter
+       (onLoadingStateChange [_ _ loading? _ _]
+         (when-not loading?
+           (let [javascript (browser-javascript js-query)]
+             (.executeJavaScript cef-browser javascript (.getURL cef-browser) 0)
+             (db/update-in project [:on-status-changed-fns] #(conj % (fn [project status]
+                                                                       (webview/handle-server-status-changed status project))))))))
+     (.getCefBrowser browser))
     browser))
 
 (defn ^:private reload-webview []
@@ -130,7 +144,7 @@
    DumbAwareAction
     (actionPerformed [_ _event]
       (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
-        (.loadURL browser "http://eca/index.html")
+        (.loadURL browser "http://eca/not-found.html")
         (.loadURL browser "http://localhost:5173/intellij_index.html")))))
 
 (defn ^:private open-devtools []
@@ -184,5 +198,4 @@
   (getAnchor [_] ToolWindowAnchor/RIGHT))
 
 (comment
-  ;; open devtools
-  (.openDevtools (db/get-in (first (db/all-projects)) [:webview-browser])))
+  (db/get-in (first (db/all-projects)) [:webview-browser]))

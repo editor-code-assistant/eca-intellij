@@ -14,7 +14,7 @@
 
 (set! *warn-on-reflection* true)
 
-;; (defmulti progress (fn [_context {:keys [token]}] token))
+(defmulti chat-content-received (fn [_context {:keys [token]}] token))
 
 (defn ^:private receive-message
   [client context message]
@@ -106,10 +106,10 @@
       (let [resp (lsp.responses/response id response-body)]
         (protocols.endpoint/log this :messages "sending response:" resp)
         resp)))
-  (receive-notification [this _context {:keys [method _params] :as notif}]
+  (receive-notification [this context {:keys [method params] :as notif}]
     (protocols.endpoint/log this :messages "received notification:" notif)
     (case method
-      ;; "$/progress" (progress context params)
+      "chat/contentReceived" (chat-content-received context params)
 
       (logger/warn "Unknown LSP notification method" method))))
 
@@ -133,5 +133,5 @@
   (protocols.endpoint/send-notification client (subs (str method) 1) body))
 
 (defn connected-client [^Project project]
-  (when (identical? :connected (db/get-in project [:status]))
+  (when (identical? :running (db/get-in project [:status]))
     (db/get-in project [:client])))
