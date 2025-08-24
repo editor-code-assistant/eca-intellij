@@ -4,6 +4,7 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [com.github.ericdallo.clj4intellij.app-manager :as app-manager]
+   [com.github.ericdallo.clj4intellij.logger :as logger]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.shared :as shared])
@@ -128,7 +129,8 @@
                             (app-manager/invoke-later! {:invoke-fn
                                                         (fn []
                                                           (when vfile
-                                                            (.openFile (FileEditorManager/getInstance project) vfile true)))})))))
+                                                            (.openFile (FileEditorManager/getInstance project) vfile true)))}))
+        (logger/warn "Unkown webview message type:" type))))
   nil)
 
 (defmethod api/chat-content-received :default
