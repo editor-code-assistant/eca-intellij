@@ -3,12 +3,16 @@
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [com.github.ericdallo.clj4intellij.app-manager :as app-manager]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
    [com.intellij.openapi.editor.colors EditorColorsManager]
+   [com.intellij.openapi.fileEditor FileEditorManager]
    [com.intellij.openapi.project Project]
+   [com.intellij.openapi.util.io FileUtil]
+   [com.intellij.openapi.vfs LocalFileSystem]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
@@ -27,7 +31,7 @@
    "input-bg" (hex (JBColor/namedColor "OptionPane.background"))
    "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
    "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBackground"))
+   "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBorderColor"))
 
    "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
    ;; TODO finish colors map with JBColor
@@ -111,7 +115,21 @@
                                                       :data result}))
         "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
                                (send-msg! cef-browser {:type "chat/queryCommands"
-                                                       :data result}))))))
+                                                       :data result}))
+        "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
+        "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
+        "chat/promptStop" (api/notify! client [:chat/promptStop data])
+        "chat/delete" @(api/request! client [:chat/delete data])
+        "mcp/startServer" (api/notify! client [:mcp/startServer data])
+        "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
+        "editor/openFile" (let [path (:path data)
+                                sys-ind-path (FileUtil/toSystemIndependentName path)
+                                vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance) sys-ind-path)]
+                            (app-manager/invoke-later! {:invoke-fn
+                                                        (fn []
+                                                          (when vfile
+                                                            (.openFile (FileEditorManager/getInstance project) vfile true)))})))))
+  nil)
 
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
