@@ -23,6 +23,10 @@ This extension will auto download `eca` and manage the process.
 
 Go to Preferences > Tools > ECA.
 
+## Troubleshooting
+
+Check [troubleshooting](http://eca.dev/troubleshooting) docs section.
+
 ## Development
 
 ## Webview
