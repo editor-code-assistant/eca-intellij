@@ -42,7 +42,7 @@
                                                      :editable? true
                                                      :enabled? true
                                                      :text server-args) ""]]) "span"]
-                  [(s/label :text "When not speciying a custom server path, the plugin will download the latest clojure-lsp automatically."
+                  [(s/label :text "When not speciying a custom server path, the plugin will download the latest eca automatically."
                             :font (s.font/font :size 14)
                             :foreground (s.color/color 110 110 110)) "wrap"]
                   [(s/label :text "*  requires ECA restart"
