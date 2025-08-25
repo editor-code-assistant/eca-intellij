@@ -95,13 +95,17 @@
                                       :welcome-message (:chat-welcome-message result)})))
 
 (defn ^:private spawn-server! [^Project project indicator server-path]
-  (logger/info "Spawning eca server process using path" server-path)
   (tasks/set-progress indicator "ECA: Starting...")
-  (let [trace-level (keyword (db/get-in project [:settings :trace-level]))
-        process (p/process [server-path "server" "--verbose"]
+  (let [server-args (or (some-> (db/get-in project [:settings :server-args])
+                                (string/split #" "))
+                        [])
+        command (concat [server-path "server"] server-args)
+        _ (logger/info "Spawning server:" (string/join " " command))
+        process (p/process command
                            {:dir (.getBasePath project)
                             :env (EnvironmentUtil/getEnvironmentMap)})
-        client (api/client (:in process) (:out process) trace-level)]
+        ;; TODO pass trace-level
+        client (api/client (:in process) (:out process) nil)]
     (db/assoc-in project [:server-process] process)
     ;; Consume and log stderr stream line-by-line, while buffering it for potential notifications
     (let [stderr-buffer (StringBuilder.)]

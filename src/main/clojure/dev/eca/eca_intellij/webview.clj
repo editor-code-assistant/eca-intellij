@@ -24,7 +24,7 @@
 (defn ^:private hex [jb-color]
   (str "#" (ColorUtil/toHex jb-color)))
 
-(def ^:private theme-css-map
+(defn ^:private theme-css-map []
   {"editor-bg" (hex (.getDefaultBackground (.getGlobalScheme (EditorColorsManager/getInstance))))
    "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
    "panel-bg" (hex (JBColor/namedColor "Editor.background"))
@@ -63,7 +63,7 @@
         (fn [s [name value]]
           (str s (format "--intellij-%s: %s;\n" name value)))
         ""
-        theme-css-map)
+        (theme-css-map))
        "}"))
 
 (defn ^:private send-msg! [^CefBrowser cef-browser msg]

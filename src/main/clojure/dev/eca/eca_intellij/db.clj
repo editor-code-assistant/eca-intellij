@@ -1,7 +1,8 @@
 (ns dev.eca.eca-intellij.db
   (:refer-clojure :exclude [get-in assoc-in update-in])
   (:import
-   [com.intellij.openapi.project Project]))
+   [com.intellij.openapi.project Project]
+   [dev.eca.eca_intellij.extension SettingsState]))
 
 (set! *warn-on-reflection* true)
 
@@ -46,3 +47,15 @@
        (mapv :project)
        (remove nil?)
        (remove #(.isDisposed ^Project %))))
+
+(defn set-server-path-setting! [^SettingsState settings-state server-path]
+  (doseq [project (all-projects)]
+    (let [server-path (not-empty server-path)]
+      (.setServerPath settings-state server-path)
+      (assoc-in project [:settings :server-path] server-path))))
+
+(defn set-server-args-setting! [^SettingsState settings-state server-args]
+  (doseq [project (all-projects)]
+    (let [server-args (not-empty server-args)]
+      (.setServerArgs settings-state server-args)
+      (assoc-in project [:settings :server-args] server-args))))

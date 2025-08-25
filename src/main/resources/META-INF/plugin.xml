@@ -13,6 +13,12 @@
         <postStartupActivity order="after EcaInitDb"
                              id="EcaStartServer"
                              implementation="dev.eca.eca_intellij.extension.init_server_startup.InitServerStartup"/>
+        <applicationService serviceImplementation="dev.eca.eca_intellij.extension.SettingsState"/>
+        <applicationConfigurable
+            parentId="tools"
+            instance="dev.eca.eca_intellij.extension.general_settings.GeneralSettingsConfigurable"
+            id="dev.eca.eca_intellij.extension.general_settings.GeneralSettingsConfigurable"
+            displayName="ECA"/>
         <statusBarWidgetFactory
             id="EcaStatusBar"
             displayName="ECA"
