@@ -36,4 +36,9 @@
         <listener topic="com.intellij.ide.AppLifecycleListener"
                   class="com.github.ericdallo.clj4intellij.listener.ClojureClassLoaderListener"/>
     </applicationListeners>
+
+    <projectListeners>
+        <listener topic="com.intellij.openapi.editor.ex.FocusChangeListener"
+                  class="dev.eca.eca_intellij.listener.file.FileListener"/>
+    </projectListeners>
 </idea-plugin>

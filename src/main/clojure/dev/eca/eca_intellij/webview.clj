@@ -9,6 +9,7 @@
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
+   [com.intellij.openapi.editor Editor]
    [com.intellij.openapi.editor.colors EditorColorsManager]
    [com.intellij.openapi.fileEditor FileEditorManager]
    [com.intellij.openapi.project Project]
@@ -92,16 +93,27 @@
     (send-msg! cef-browser {:type "server/statusChanged"
                             :data (string/capitalize (name status))})))
 
+(defn ^:private on-focus-changed [^Editor editor _]
+  (when-let [project (some-> editor .getProject)]
+    (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
+          cef-browser (.getCefBrowser browser)
+          vfile (.getVirtualFile editor)
+          path (.getPath vfile)]
+      (send-msg! cef-browser {:type "editor/focusChanged"
+                              :data {:type :fileFocused
+                                     :path path}}))))
+
 (defn handle [msg project]
   (let [{:keys [type data]} (json/parse-string msg keyword)
-        cef-browser (.getCefBrowser ^JBCefBrowser (db/get-in project [:webview-browser]))]
+        jb-cef-browser ^JBCefBrowser (db/get-in project [:webview-browser])
+        cef-browser (.getCefBrowser jb-cef-browser)]
     (when-let [client (api/connected-client project)]
       (case type
         "webview/ready" (do
                           (handle-server-status-changed (db/get-in project [:status])
                                                         project)
                           ;; TODO send config/updated
-                          )
+                          (db/assoc-in project [:on-focus-changed-fns :webview] on-focus-changed))
         "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (data :chatId)
                                                                             :message (data :prompt)
                                                                             :model (db/get-in project [:session :chat-selected-model])

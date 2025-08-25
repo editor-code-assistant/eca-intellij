@@ -62,8 +62,8 @@
     ([^StatusBarWidgetFactory this ^Project project ^CoroutineScope _]
      (.createWidget this project))
     ([this ^Project project]
-     (db/update-in project [:on-status-changed-fns] #(conj % (fn [_project _status]
-                                                               (refresh-status-bar this project))))
+     (db/assoc-in project [:on-status-changed-fns :status-bar] (fn [_project _status]
+                                                                 (refresh-status-bar this project)))
      (proxy+
       []
       StatusBarWidget

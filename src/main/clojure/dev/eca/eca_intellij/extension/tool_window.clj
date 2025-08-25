@@ -87,8 +87,8 @@
          (when-not loading?
            (let [javascript (browser-javascript js-query)]
              (.executeJavaScript cef-browser javascript (.getURL cef-browser) 0)
-             (db/update-in project [:on-status-changed-fns] #(conj % (fn [project status]
-                                                                       (webview/handle-server-status-changed status project))))))))
+             (db/assoc-in project [:on-status-changed-fns :webview] (fn [project status]
+                                                                       (webview/handle-server-status-changed status project)))))))
      (.getCefBrowser browser))
     browser))
 
@@ -132,17 +132,14 @@
   (createToolWindowContent [_this project tool-window]
     (create-tool-window-content project tool-window))
   (shouldBeAvailable [_this _project] true)
-  (isApplicable [_this _project] true)
 
   (init [_ ^ToolWindow _tool-window])
 
   (isApplicableAsync
-    ([_ ^Project _project] true)
-    ([_ ^Project _project __] true))
-
+    ([_ _] true)
+    ([_ _ _] true))
   (isApplicable [_ _project] true)
-
-  (shouldBeAvailable [_this ^Project _project] true)
+  (isDoNotActivateOnStart [_] false)
 
   (manager [_ _ _])
   (manage [_ _ _ _])

@@ -18,7 +18,8 @@
              :chat-selected-model nil
              :welcome-message ""
              :mcp-servers {}}
-   :on-status-changed-fns []})
+   :on-status-changed-fns {}
+   :on-focus-changed-fns {}})
 
 (defonce db* (atom {:projects {}}))
 

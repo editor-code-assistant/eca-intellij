@@ -36,7 +36,7 @@
                              (assoc db :status :stopped
                                     :client nil
                                     :server-process nil)))
-  (run! #(% project :stopped) (db/get-in project [:on-status-changed-fns])))
+  (run! #(% project :stopped) (vals (db/get-in project [:on-status-changed-fns]))))
 
 (defn ^:private os-name []
   (let [os-name (string/lower-case (System/getProperty "os.name" "generic"))]
@@ -155,7 +155,7 @@
 
 (defn start! [^Project project]
   (db/assoc-in project [:status] :starting)
-  (run! #(% project :starting) (db/get-in project [:on-status-changed-fns]))
+  (run! #(% project :starting) (vals (db/get-in project [:on-status-changed-fns])))
   (tasks/run-background-task!
    project
    "ECA startup"
@@ -186,12 +186,12 @@
                                            :message "There is no server downloaded and there was a network issue trying to download the latest server"}))
 
        (db/assoc-in project [:status] :running)
-       (run! #(% project :running) (db/get-in project [:on-status-changed-fns]))
+       (run! #(% project :running) (vals (db/get-in project [:on-status-changed-fns])))
         ;; For race conditions when server starts too fast
         ;; and other places that listen didn't setup yet
        (future
          (Thread/sleep 1000)
-         (run! #(% project :running) (db/get-in project [:on-status-changed-fns])))
+         (run! #(% project :running) (vals (db/get-in project [:on-status-changed-fns]))))
        (logger/info "Initialized ECA"))))
   true)
 
