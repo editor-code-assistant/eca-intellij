@@ -37,6 +37,9 @@
 (defn tests []
   (shell "./gradlew test"))
 
+(defn dev-webview []
+  (shell "npm run dev --prefix eca-webview"))
+
 (defn build-plugin []
   (shell "./gradlew buildPlugin"))
 
