@@ -90,8 +90,9 @@
                                         :uri (str (.toURI (io/file (.getBasePath project))))}]})
         (send-msg! cef-browser {:type "chat/setWelcomeMessage"
                                 :data {:message (:welcome-message session)}})))
-    (send-msg! cef-browser {:type "server/statusChanged"
-                            :data (string/capitalize (name status))})))
+    (when status
+      (send-msg! cef-browser {:type "server/statusChanged"
+                              :data (string/capitalize (name status))}))))
 
 (defn ^:private on-focus-changed [^Editor editor _]
   (when-let [project (some-> editor .getProject)]
@@ -107,42 +108,46 @@
   (let [{:keys [type data]} (json/parse-string msg keyword)
         jb-cef-browser ^JBCefBrowser (db/get-in project [:webview-browser])
         cef-browser (.getCefBrowser jb-cef-browser)]
-    (when-let [client (api/connected-client project)]
-      (case type
-        "webview/ready" (do
-                          (handle-server-status-changed (db/get-in project [:status])
-                                                        project)
-                          ;; TODO send config/updated
-                          (db/assoc-in project [:on-focus-changed-fns :webview] on-focus-changed))
-        "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (data :chatId)
-                                                                            :message (data :prompt)
-                                                                            :model (db/get-in project [:session :chat-selected-model])
-                                                                            :behavior (db/get-in project [:session :chat-selected-behavior])
-                                                                            :requestId (str (data :requestId))
-                                                                            :contexts (data :contexts)}])]
-                            (send-msg! cef-browser
-                                       {:type "chat/newChat"
-                                        :data {:id (:chat-id result)}}))
-        "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
-                              (send-msg! cef-browser {:type "chat/queryContext"
-                                                      :data result}))
-        "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
-                               (send-msg! cef-browser {:type "chat/queryCommands"
-                                                       :data result}))
-        "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
-        "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
-        "chat/promptStop" (api/notify! client [:chat/promptStop data])
-        "chat/delete" @(api/request! client [:chat/delete data])
-        "mcp/startServer" (api/notify! client [:mcp/startServer data])
-        "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
-        "editor/openFile" (let [path (:path data)
-                                sys-ind-path (FileUtil/toSystemIndependentName path)
-                                vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance) sys-ind-path)]
-                            (app-manager/invoke-later! {:invoke-fn
-                                                        (fn []
-                                                          (when vfile
-                                                            (.openFile (FileEditorManager/getInstance project) vfile true)))}))
-        (logger/warn "Unkown webview message type:" type))))
+    (if (= "webview/ready" type)
+      ;; TODO send config/updated too
+      (do
+        (handle-server-status-changed (db/get-in project [:status])
+                                      project)
+        ;; send current opened editor if any
+        (when-let [editor (.getSelectedTextEditor (FileEditorManager/getInstance project))]
+          (on-focus-changed editor nil))
+        (db/assoc-in project [:on-focus-changed-fns :webview] #'on-focus-changed))
+      (when-let [client (api/connected-client project)]
+        (case type
+          "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (data :chatId)
+                                                                              :message (data :prompt)
+                                                                              :model (db/get-in project [:session :chat-selected-model])
+                                                                              :behavior (db/get-in project [:session :chat-selected-behavior])
+                                                                              :requestId (str (data :requestId))
+                                                                              :contexts (data :contexts)}])]
+                              (send-msg! cef-browser
+                                         {:type "chat/newChat"
+                                          :data {:id (:chat-id result)}}))
+          "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
+                                (send-msg! cef-browser {:type "chat/queryContext"
+                                                        :data result}))
+          "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
+                                 (send-msg! cef-browser {:type "chat/queryCommands"
+                                                         :data result}))
+          "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
+          "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
+          "chat/promptStop" (api/notify! client [:chat/promptStop data])
+          "chat/delete" @(api/request! client [:chat/delete data])
+          "mcp/startServer" (api/notify! client [:mcp/startServer data])
+          "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
+          "editor/openFile" (let [path (:path data)
+                                  sys-ind-path (FileUtil/toSystemIndependentName path)
+                                  vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance) sys-ind-path)]
+                              (app-manager/invoke-later! {:invoke-fn
+                                                          (fn []
+                                                            (when vfile
+                                                              (.openFile (FileEditorManager/getInstance project) vfile true)))}))
+          (logger/warn "Unkown webview message type:" type)))))
   nil)
 
 (defmethod api/chat-content-received :default

@@ -75,11 +75,11 @@
         cef-browser (.getCefBrowser browser)]
     (db/assoc-in project [:webview-browser] browser)
     (Disposer/register project browser)
+    (.addHandler js-query (fn [msg] (webview/handle msg project)))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca" (EcaSchemeHandlerFactory.))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca-theme" (eca-theme-scheme-handler))
-    (.addHandler js-query (fn [msg] (webview/handle msg project)))
     (.addLoadHandler
      (.getJBCefClient browser)
      (proxy+ [] CefLoadHandlerAdapter
