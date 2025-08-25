@@ -116,7 +116,7 @@ tasks {
     }
 
     runPluginVerifier {
-        ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
+        ideVersions.set(prop("pluginVerifierIdeVersions").split(',').map { it.trim() }.filter { it.isNotEmpty() })
     }
 
     signPlugin {
@@ -131,15 +131,14 @@ tasks {
         // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels.set(listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
+        channels.set(listOf(prop("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
     }
 
     clojureRepl {
         dependsOn("compileClojure")
         classpath.from(sourceSets.main.get().runtimeClasspath
                        + file("build/classes/kotlin/main")
-                       + file("build/clojure/main")
-        )
+                       + file("build/clojure/main"))
         // doFirst {
         //     println(classpath.asPath)
         // }
@@ -150,8 +149,7 @@ tasks {
                                      "--add-opens=java.base/java.lang=ALL-UNNAMED",
                                      "-Djava.system.class.loader=com.intellij.util.lang.PathClassLoader",
                                      "-Didea.mimic.jar.url.connection=true",
-                                     "-Didea.force.use.core.classloader=true"
-        )
+                                     "-Didea.force.use.core.classloader=true")
     }
 }
 
