@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.0
+
 - Refresh files when tool called
 
 ## 0.0.3
