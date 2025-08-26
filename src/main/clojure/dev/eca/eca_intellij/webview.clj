@@ -14,7 +14,7 @@
    [com.intellij.openapi.fileEditor FileEditorManager]
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.util.io FileUtil]
-   [com.intellij.openapi.vfs LocalFileSystem]
+   [com.intellij.openapi.vfs LocalFileSystem VfsUtil]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
@@ -97,14 +97,13 @@
 (defn ^:private on-focus-changed [^Editor editor _]
   (when-let [project (some-> editor .getProject)]
     (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
-          cef-browser (.getCefBrowser browser)
-          vfile (.getVirtualFile editor)
-          path (.getPath vfile)]
-      (send-msg! cef-browser {:type "editor/focusChanged"
-                              :data {:type :fileFocused
-                                     :path path}}))))
+          cef-browser (.getCefBrowser browser)]
+      (when-let [vfile (.getVirtualFile editor)]
+        (send-msg! cef-browser {:type "editor/focusChanged"
+                                :data {:type :fileFocused
+                                       :path (.getPath vfile)}})))))
 
-(defn handle [msg project]
+(defn handle [msg ^Project project]
   (let [{:keys [type data]} (json/parse-string msg keyword)
         jb-cef-browser ^JBCefBrowser (db/get-in project [:webview-browser])
         cef-browser (.getCefBrowser jb-cef-browser)]
@@ -134,6 +133,8 @@
           "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
                                  (send-msg! cef-browser {:type "chat/queryCommands"
                                                          :data result}))
+          "editor/refresh"
+          (.refreshFiles (LocalFileSystem/getInstance) [(.findFileByIoFile (LocalFileSystem/getInstance) (io/file (.getBasePath project)))] true true nil)
           "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
           "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
           "chat/promptStop" (api/notify! client [:chat/promptStop data])

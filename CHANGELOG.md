@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Refresh files when tool called
+
 ## 0.0.3
 
 - Support file focus integration
