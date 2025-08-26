@@ -1,6 +1,7 @@
 # ECA IntelliJ
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
+[![JetBrains Plugin Version](https://img.shields.io/jetbrains/plugin/v/dev.eca.eca-intellij?style=flat-square&labelColor=91B6FB&color=93DA52&link=https%3A%2F%2Fplugins.jetbrains.com%2Fplugin%2F28289-eca)](https://plugins.jetbrains.com/plugin/28289-eca)
+
 
 <!-- Plugin description -->
 
