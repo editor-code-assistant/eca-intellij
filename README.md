@@ -8,7 +8,7 @@
 
 <!-- Plugin description end -->
 
-![demo](demo.png)
+![demo](demo.gif)
 
 ---
 
