@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump webview: improving prompt select-boxes.
+
 ## 0.1.1
 
 - Fix change of selected model/behavior
