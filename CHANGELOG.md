@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.2
+
 - Bump webview: improving prompt select-boxes.
 
 ## 0.1.1
