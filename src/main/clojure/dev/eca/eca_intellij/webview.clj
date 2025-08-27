@@ -26,37 +26,39 @@
   (str "#" (ColorUtil/toHex jb-color)))
 
 (defn ^:private theme-css-map []
-  {"editor-bg" (hex (.getDefaultBackground (.getGlobalScheme (EditorColorsManager/getInstance))))
-   "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "panel-bg" (hex (JBColor/namedColor "Editor.background"))
-   "panel-border" (hex (JBUI$CurrentTheme$ToolWindow/borderColor))
-   "input-bg" (hex (JBColor/namedColor "OptionPane.background"))
-   "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
-   "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   "toolbar-hover-bg" (hex (JBColor/namedColor "ActionButton.hoverBorderColor"))
+  (let [global-scheme (.getGlobalScheme (EditorColorsManager/getInstance))]
+    {"editor-bg" (hex (.getDefaultBackground global-scheme))
+     "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
+     "panel-bg" (hex (JBColor/namedColor "Editor.background"))
+     "panel-border" (hex (JBUI$CurrentTheme$ToolWindow/borderColor))
+     "input-bg" (hex (JBColor/namedColor "OptionPane.background"))
+     "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
+     "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
+     "highlight-bg" (hex (JBColor/namedColor "Borders.ContrastBorderColor"))
 
-   "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
-   ;; TODO finish colors map with JBColor
-   ;; "success-fg"
-   ;; "warning-fg"
-   ;; "error-fg"
-   ;; "warning-message-fg"
-   ;; "confirm-action-bg"
-   ;; "confirm-action-fg"
-   ;; "diff-unchanged-bg"
-   ;; "diff-insert-bg"
-   ;; "delete-bg"
-   ;; "tooltip-bg"
-   ;; "tooltip-fg"
-   ;; "toggle-slider-bg"
-   ;; "toggle-icon-bg"
-   ;; "toggle-bg"
-   ;; "context-file-fg"
-   ;; "context-directory-fg"
-   ;; "context-web-fg"
-   ;; "context-repo-map-fg"
-   ;; "context-mcp-resource-fg"
-   })
+     "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
+     "link-fg" (hex (JBColor/namedColor "Hyperlink.linkColor"))
+     ;; TODO finish colors map with JBColor
+     ;; "success-fg"
+     ;; "warning-fg"
+     ;; "error-fg"
+     ;; "warning-message-fg"
+     ;; "confirm-action-bg"
+     ;; "confirm-action-fg"
+     ;; "diff-unchanged-bg"
+     ;; "diff-insert-bg"
+     ;; "delete-bg"
+     ;; "tooltip-bg"
+     ;; "tooltip-fg"
+     ;; "toggle-slider-bg"
+     ;; "toggle-icon-bg"
+     ;; "toggle-bg"
+     ;; "context-file-fg"
+     ;; "context-directory-fg"
+     ;; "context-web-fg"
+     ;; "context-repo-map-fg"
+     ;; "context-mcp-resource-fg"
+     }))
 
 (defn theme-css ^String []
   (str ":root {\n"
