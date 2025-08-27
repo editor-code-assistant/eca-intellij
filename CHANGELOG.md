@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.3
+
 - Fix corner case where webview sends message even if js is not ready.
 
 ## 0.1.2
