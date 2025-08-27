@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix change of selected model/behavior
+
 ## 0.1.0
 
 - Refresh files when tool called

@@ -14,7 +14,7 @@
    [com.intellij.openapi.fileEditor FileEditorManager]
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.util.io FileUtil]
-   [com.intellij.openapi.vfs LocalFileSystem VfsUtil]
+   [com.intellij.openapi.vfs LocalFileSystem]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
@@ -127,6 +127,8 @@
                               (send-msg! cef-browser
                                          {:type "chat/newChat"
                                           :data {:id (:chat-id result)}}))
+          "chat/selectedModelChanged" (db/assoc-in project [:session :chat-selected-model] (:value data))
+          "chat/selectedBehaviorChanged" (db/assoc-in project [:session :chat-selected-behavior] (:value data))
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
                                 (send-msg! cef-browser {:type "chat/queryContext"
                                                         :data result}))
