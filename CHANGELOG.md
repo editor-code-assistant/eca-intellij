@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.4
+
 - Improve color theme for light editors.
 
 ## 0.1.3
