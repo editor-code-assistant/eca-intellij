@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.1.1
+
 - Fix change of selected model/behavior
 
 ## 0.1.0
