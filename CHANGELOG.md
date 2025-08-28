@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.2.1
+
 - Update plugin logos.
 
 ## 0.2.0
