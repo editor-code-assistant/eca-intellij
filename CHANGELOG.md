@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add support for tabs in chats.
+
 ## 0.1.4
 
 - Improve color theme for light editors.
