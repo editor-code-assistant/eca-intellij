@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix corner case where server starts but webview is not notified.
+
 ## 0.2.1
 
 - Update plugin logos.
