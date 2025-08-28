@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.2.0
+
 - Add support for tabs in chats.
 
 ## 0.1.4
