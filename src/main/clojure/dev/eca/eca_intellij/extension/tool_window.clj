@@ -87,8 +87,9 @@
          (when-not loading?
            (let [javascript (browser-javascript js-query)]
              (.executeJavaScript cef-browser javascript (.getURL cef-browser) 0)
+             (webview/handle-server-status-changed (db/get-in project [:status]) project)
              (db/assoc-in project [:on-status-changed-fns :webview] (fn [project status]
-                                                                       (webview/handle-server-status-changed status project)))))))
+                                                                      (webview/handle-server-status-changed status project)))))))
      (.getCefBrowser browser))
     browser))
 

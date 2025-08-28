@@ -134,6 +134,10 @@ tasks {
         channels.set(listOf(prop("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
     }
 
+    buildSearchableOptions {
+        enabled = false
+    }
+
     clojureRepl {
         dependsOn("compileClojure")
         classpath.from(sourceSets.main.get().runtimeClasspath
