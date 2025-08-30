@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.2.3
+
 - Fix docs open in chat.
 
 ## 0.2.2
