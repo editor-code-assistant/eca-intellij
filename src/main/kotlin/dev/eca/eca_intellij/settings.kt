@@ -10,6 +10,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 class SettingsState : PersistentStateComponent<SettingsState?> {
     var serverPath: String? = null
     var serverArgs: String? = null
+    var usageStringFormat: String? = null
 
     override fun getState(): SettingsState? {
         return this

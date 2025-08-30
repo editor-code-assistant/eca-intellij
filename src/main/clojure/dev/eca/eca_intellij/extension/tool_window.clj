@@ -105,7 +105,9 @@
              (.executeJavaScript cef-browser javascript (.getURL cef-browser) 0)
              (webview/handle-server-status-changed (db/get-in project [:status]) project)
              (db/assoc-in project [:on-status-changed-fns :webview] (fn [project status]
-                                                                      (webview/handle-server-status-changed status project)))))))
+                                                                      (webview/handle-server-status-changed status project)))
+             (db/assoc-in project [:on-settings-changed-fns :webview] (fn []
+                                                                        (webview/handle-settings-changed project)))))))
      (.getCefBrowser browser))
     browser))
 

@@ -5,6 +5,7 @@
   (:import
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.startup ProjectActivity]
+   [dev.eca.eca_intellij.extension SettingsState]
    [kotlinx.coroutines CoroutineScope]))
 
 (set! *warn-on-reflection* true)
@@ -12,4 +13,4 @@
 (def-extension InitDBStartup []
   ProjectActivity
   (execute [_this ^Project project ^CoroutineScope _]
-           (db/init-db-for-project project)))
+    (db/init-db-for-project project (SettingsState/get))))

@@ -16,10 +16,14 @@
 
 (defonce ^:private component* (atom nil))
 
+(def ^:private default-usage-string-format
+  "{sessionTokens} / {contextLimit} ({sessionCost})")
+
 (defn ^:private build-component [settings]
   (let [custom-server-path (:server-path settings)
         server-args (or (:server-args settings) "")
-        server-path (or custom-server-path (.getCanonicalPath (config/download-server-path)))]
+        server-path (or custom-server-path (.getCanonicalPath (config/download-server-path)))
+        usage-string-format (or (:usage-string-format settings) default-usage-string-format)]
     (s.mig/mig-panel
      :items (->> [[(s.mig/mig-panel :border (IdeBorderFactory/createTitledBorder "Settings")
                                     :items [[(s/label "Server path *") ""]
@@ -41,7 +45,13 @@
                                                      :columns 10
                                                      :editable? true
                                                      :enabled? true
-                                                     :text server-args) ""]]) "span"]
+                                                     :text server-args) "wrap"]
+                                            [(s/label "Usage string format") ""]
+                                            [(s/text :id :usage-string-format
+                                                     :columns 30
+                                                     :editable? true
+                                                     :enabled? true
+                                                     :text usage-string-format) ""]]) "span"]
                   [(s/label :text "When not speciying a custom server path, the plugin will download the latest eca automatically."
                             :font (s.font/font :size 14)
                             :foreground (s.color/color 110 110 110)) "wrap"]
@@ -64,17 +74,21 @@
   (isModified [_]
     (let [settings-state (SettingsState/get)
           server-path (s/config (s/select @component* [:#server-path]) :text)
-          server-args (s/config (s/select @component* [:#server-args]) :text)]
+          server-args (s/config (s/select @component* [:#server-args]) :text)
+          usage-string-format (s/config (s/select @component* [:#usage-string-format]) :text)]
       (boolean
        (or (not= server-path (or (.getServerPath settings-state) ""))
-           (not= server-args (or (.getServerArgs settings-state) ""))))))
+           (not= server-args (or (.getServerArgs settings-state) ""))
+           (not= usage-string-format (or (.getServerArgs settings-state) ""))))))
 
   (reset [_]
     (let [project (first (db/all-projects))
           server-path (or (db/get-in project [:settings :server-path]) (.getCanonicalPath (config/download-server-path)))
-          server-args (or (db/get-in project [:settings :server-args]) "")]
+          server-args (or (db/get-in project [:settings :server-args]) "")
+          usage-string-format (or (db/get-in project [:settings :usage-string-format]) default-usage-string-format)]
       (s/config! (s/select @component* [:#server-path]) :text server-path)
-      (s/config! (s/select @component* [:#server-args]) :text server-args)))
+      (s/config! (s/select @component* [:#server-args]) :text server-args)
+      (s/config! (s/select @component* [:#usage-string-format]) :text usage-string-format)))
 
   (disposeUIResources [_]
     (reset! component* nil))
@@ -83,8 +97,11 @@
     (let [settings-state (SettingsState/get)
           server-path (when (s/config (s/select @component* [:#custom-server-path?]) :selected?)
                         (s/config (s/select @component* [:#server-path]) :text))
-          server-args (s/config (s/select @component* [:#server-args]) :text)]
+          server-args (s/config (s/select @component* [:#server-args]) :text)
+          usage-string-format (s/config (s/select @component* [:#usage-string-format]) :text)]
       (db/set-server-path-setting! settings-state server-path)
-      (db/set-server-args-setting! settings-state server-args)))
+      (db/set-server-args-setting! settings-state server-args)
+      (db/set-usage-string-format-setting! settings-state usage-string-format)
+      (db/settings-updated!)))
 
   (cancel [_]))

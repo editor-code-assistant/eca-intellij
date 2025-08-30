@@ -76,6 +76,14 @@
                       (.getURL cef-browser)
                       0))
 
+(defn handle-settings-changed [^Project project]
+  (when-let [settings (db/get-in project [:settings])]
+    (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
+          cef-browser (.getCefBrowser browser)]
+      (send-msg! cef-browser
+                 {:type "config/updated"
+                  :data settings}))))
+
 (defn handle-server-status-changed [status ^Project project]
   (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
         cef-browser (.getCefBrowser browser)]
@@ -114,6 +122,7 @@
       (do
         (handle-server-status-changed (db/get-in project [:status])
                                       project)
+        (handle-settings-changed project)
         ;; send current opened editor if any
         (when-let [editor (.getSelectedTextEditor (FileEditorManager/getInstance project))]
           (on-focus-changed editor nil))
