@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.3.0
+
 - Support usage string format in settings.
 
 ## 0.2.3
