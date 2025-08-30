@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support usage string format in settings.
+
 ## 0.2.3
 
 - Fix docs open in chat.
