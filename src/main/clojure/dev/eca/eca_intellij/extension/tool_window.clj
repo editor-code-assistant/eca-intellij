@@ -6,6 +6,7 @@
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.webview :as webview])
   (:import
+   [com.intellij.ide BrowserUtil]
    [com.intellij.openapi.actionSystem ActionManager]
    [com.intellij.openapi.project DumbAwareAction Project]
    [com.intellij.openapi.util Disposer]
@@ -18,7 +19,7 @@
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
    [org.cef.handler CefLoadHandlerAdapter CefResourceHandler]
    [org.cef.misc IntRef]
-   [org.cef.network CefResponse]))
+   [org.cef.network CefRequest CefResponse]))
 
 (set! *warn-on-reflection* true)
 
@@ -60,6 +61,19 @@
             (read-response data-out bytes-to-read bytes-read @bytes* offset*))
           (cancel [_]))))))
 
+(defn ^:private docs-scheme-handler [^JBCefBrowser browser url]
+  (proxy+ [] CefSchemeHandlerFactory
+    (create [_ _browser _frame _scheme _req]
+      (proxy+ [] CefResourceHandler
+        (processRequest [_ ^CefRequest req _]
+          (BrowserUtil/browse (.getURL req))
+          false)
+        (getResponseHeaders [_ _ _ _])
+        (readResponse [_ _ _ _ _])
+        (cancel [_]
+          (.loadURL browser "http://eca/not-found.html")
+          (.loadURL browser url))))))
+
 (defn ^:private browser-javascript ^String [^JBCefJSQuery js-query]
   (format (str "window.postMessageToEditor = function(message) {"
                "  const msg = JSON.stringify(message);"
@@ -67,7 +81,7 @@
                "}")
           (.inject js-query "msg")))
 
-(defn ^:private create-webview ^JBCefBrowser [^Project project]
+(defn ^:private create-webview ^JBCefBrowser [^Project project url]
   (let [browser (-> (JBCefBrowser/createBuilder)
                     (.setOffScreenRendering true) ;; TODO move to config
                     (.build))
@@ -80,6 +94,8 @@
      (CefApp/getInstance) "http" "eca" (EcaSchemeHandlerFactory.))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca-theme" (eca-theme-scheme-handler))
+    (.registerSchemeHandlerFactory
+     (CefApp/getInstance) "https" "eca.dev" (docs-scheme-handler browser url))
     (.addLoadHandler
      (.getJBCefClient browser)
      (proxy+ [] CefLoadHandlerAdapter
@@ -93,14 +109,14 @@
      (.getCefBrowser browser))
     browser))
 
-(defn ^:private reload-webview []
+(defn ^:private reload-webview [url]
   (proxy+
    ["Reload ECA webview" "Reload ECA webview" Icons/ECA]
    DumbAwareAction
     (actionPerformed [_ _event]
       (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
         (.loadURL browser "http://eca/not-found.html")
-        (.loadURL browser "http://localhost:5173/intellij_index.html")))))
+        (.loadURL browser url)))))
 
 (defn ^:private open-devtools []
   (proxy+
@@ -114,13 +130,13 @@
   [^Project project ^ToolWindow tool-window]
   (System/setProperty "ide.browser.jcef.jsQueryPoolSize" "200")
   (System/setProperty "ide.browser.jcef.contextMenu.devTools.enabled" "true")
-  (let [browser (create-webview project)
-        url (if (config/dev?)
+  (let [url (if (config/dev?)
               "http://localhost:5173/intellij_index.html"
               "http://eca/index.html")
+        browser (create-webview project url)
         content (.createContent (ContentFactory/getInstance) (.getComponent browser) nil false)
         actions (->> [(.getAction (ActionManager/getInstance) "MaximizeToolWindow")
-                      (when (config/dev?) (reload-webview))
+                      (reload-webview url)
                       (when (config/dev?) (open-devtools))]
 
                      (remove nil?))]
