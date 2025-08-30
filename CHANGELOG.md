@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix docs open in chat.
+
 ## 0.2.2
 
 - Fix corner case where server starts but webview is not notified.
