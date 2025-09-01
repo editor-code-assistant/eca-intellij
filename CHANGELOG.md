@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`.
+
 ## 0.4.1
 
 - Fix regression.
