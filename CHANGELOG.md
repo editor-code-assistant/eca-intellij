@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.4.0
+
 - Support `config/updated` from server.
 
 ## 0.3.0
