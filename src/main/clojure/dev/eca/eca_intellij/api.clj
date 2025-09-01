@@ -14,6 +14,7 @@
 
 (set! *warn-on-reflection* true)
 
+(defmulti config-updated (constantly :default))
 (defmulti chat-content-received (constantly :default))
 (defmulti tool-server-updated (constantly :default))
 
@@ -110,6 +111,7 @@
   (receive-notification [this context {:keys [method params] :as notif}]
     (protocols.endpoint/log this :messages "received notification:" notif)
     (case method
+      "config/updated" (config-updated context params)
       "chat/contentReceived" (chat-content-received context params)
       "tool/serverUpdated" (tool-server-updated context params)
 

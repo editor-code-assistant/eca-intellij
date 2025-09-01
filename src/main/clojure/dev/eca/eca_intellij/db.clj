@@ -14,12 +14,8 @@
    :client nil
    :server-process nil
    :project nil
-   :session {:models []
-             :chat-behaviors []
-             :chat-selected-behavior nil
-             :chat-selected-model nil
-             :welcome-message ""
-             :mcp-servers {}}
+   :session {:mcp-servers {}}
+   :server-config {}
    :on-status-changed-fns {}
    :on-focus-changed-fns {}
    :settings nil

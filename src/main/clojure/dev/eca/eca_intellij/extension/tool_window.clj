@@ -107,7 +107,7 @@
              (db/assoc-in project [:on-status-changed-fns :webview] (fn [project status]
                                                                       (webview/handle-server-status-changed status project)))
              (db/assoc-in project [:on-settings-changed-fns :webview] (fn []
-                                                                        (webview/handle-settings-changed project)))))))
+                                                                        (webview/handle-config-changed project)))))))
      (.getCefBrowser browser))
     browser))
 

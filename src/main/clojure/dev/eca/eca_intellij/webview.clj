@@ -76,30 +76,21 @@
                       (.getURL cef-browser)
                       0))
 
-(defn handle-settings-changed [^Project project]
+(defn handle-config-changed [^Project project config]
   (when-let [settings (db/get-in project [:settings])]
     (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
           cef-browser (.getCefBrowser browser)]
       (send-msg! cef-browser
                  {:type "config/updated"
-                  :data settings}))))
+                  :data (merge config settings)}))))
 
 (defn handle-server-status-changed [status ^Project project]
   (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
         cef-browser (.getCefBrowser browser)]
     (when (= :running status)
-      (let [session (db/get-in project [:session])]
-        (send-msg! cef-browser {:type "chat/setModels"
-                                :data {:models (:models session)
-                                       :selected-model (:chat-selected-model session)}})
-        (send-msg! cef-browser {:type "chat/setBehaviors"
-                                :data {:behaviors (:chat-behaviors session)
-                                       :selected-behavior (:chat-selected-behavior session)}})
-        (send-msg! cef-browser {:type "server/setWorkspaceFolders"
-                                :data [{:name (.getName project)
-                                        :uri (str (.toURI (io/file (.getBasePath project))))}]})
-        (send-msg! cef-browser {:type "chat/setWelcomeMessage"
-                                :data {:message (:welcome-message session)}})))
+      (send-msg! cef-browser {:type "server/setWorkspaceFolders"
+                              :data [{:name (.getName project)
+                                      :uri (str (.toURI (io/file (.getBasePath project))))}]}))
     (when status
       (send-msg! cef-browser {:type "server/statusChanged"
                               :data (string/capitalize (name status))}))))
@@ -118,28 +109,25 @@
         jb-cef-browser ^JBCefBrowser (db/get-in project [:webview-browser])
         cef-browser (.getCefBrowser jb-cef-browser)]
     (if (= "webview/ready" type)
-      ;; TODO send config/updated too
       (do
         (handle-server-status-changed (db/get-in project [:status])
                                       project)
-        (handle-settings-changed project)
+        (handle-config-changed project (db/get-in project [:server-config]))
         ;; send current opened editor if any
         (when-let [editor (.getSelectedTextEditor (FileEditorManager/getInstance project))]
           (on-focus-changed editor nil))
         (db/assoc-in project [:on-focus-changed-fns :webview] #'on-focus-changed))
       (when-let [client (api/connected-client project)]
         (case type
-          "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (data :chatId)
-                                                                              :message (data :prompt)
-                                                                              :model (db/get-in project [:session :chat-selected-model])
-                                                                              :behavior (db/get-in project [:session :chat-selected-behavior])
+          "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (:chatId data)
+                                                                              :message (:prompt data)
+                                                                              :model (:model data)
+                                                                              :behavior (:behavior data)
                                                                               :requestId (str (data :requestId))
-                                                                              :contexts (data :contexts)}])]
+                                                                              :contexts (:contexts data)}])]
                               (send-msg! cef-browser
                                          {:type "chat/newChat"
                                           :data {:id (:chat-id result)}}))
-          "chat/selectedModelChanged" (db/assoc-in project [:session :chat-selected-model] (:value data))
-          "chat/selectedBehaviorChanged" (db/assoc-in project [:session :chat-selected-behavior] (:value data))
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
                                 (send-msg! cef-browser {:type "chat/queryContext"
                                                         :data result}))
@@ -163,6 +151,11 @@
                                                               (.openFile (FileEditorManager/getInstance project) vfile true)))}))
           (logger/warn "Unkown webview message type:" type)))))
   nil)
+
+(defmethod api/config-updated :default
+  [{:keys [project]} params]
+  (db/update-in project [:server-config] #(merge % params))
+  (handle-config-changed project params))
 
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
