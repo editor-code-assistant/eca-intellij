@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support `config/updated` from server.
+
 ## 0.3.0
 
 - Support usage string format in settings.
