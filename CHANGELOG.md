@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.4.2
+
 - Bump `eca-webview`.
 
 ## 0.4.1
