@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.4.1
+
 - Fix regression.
 
 ## 0.4.0
