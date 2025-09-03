@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump eca-webview.
+
 ## 0.5.0
 
 - Add support for stderr logs access.
