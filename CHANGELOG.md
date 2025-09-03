@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.5.0
+
 - Add support for stderr logs access.
 - Improve debugging MCP servers failed.
 
