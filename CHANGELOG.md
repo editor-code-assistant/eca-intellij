@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.5.1
+
 - Bump eca-webview.
 
 ## 0.5.0
