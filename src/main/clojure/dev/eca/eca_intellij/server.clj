@@ -107,20 +107,18 @@
         ;; TODO pass trace-level
         client (api/client (:in process) (:out process) nil)]
     (db/assoc-in project [:server-process] process)
-    ;; Consume and log stderr stream line-by-line, while buffering it for potential notifications
-    (let [stderr-buffer (StringBuilder.)]
-      (db/assoc-in project [:server-stderr-buffer] stderr-buffer)
-      (future
-        (try
-          (with-open [r (io/reader (:err process))]
-            (doseq [line (line-seq r)]
-              (locking stderr-buffer
-                (.append stderr-buffer line)
-                (.append stderr-buffer \n))
-              (logger/info "stderr:" line)))
-          (catch Throwable _e
-            ;; Swallow errors while reading stderr to avoid interfering with startup
-            ))))
+    (future
+      (try
+        (with-open [r (io/reader (:err process))]
+          (doseq [line (line-seq r)]
+            (db/update-in project [:server-stderr-string] #(str % line "\n"))
+            (doseq [on-stderr-log-updated-fn (vals (db/get-in project [:on-stderr-log-updated-fns]))]
+              (on-stderr-log-updated-fn))
+            (logger/info "stderr:" line)))
+        (catch Throwable e
+          (logger/error "Error reading ECA process err: " e)
+          ;; Swallow errors while reading stderr to avoid interfering with startup
+          )))
 
     (api/start-client! client {:progress-indicator indicator
                                :project project})
@@ -139,8 +137,7 @@
           (notification/show-notification! {:project project
                                             :type :error
                                             :title "ECA process error"
-                                            :message (let [sb (db/get-in project [:server-stderr-buffer])]
-                                                       (when sb (locking sb (str sb))))})
+                                            :message "Check server logs via 'ECA: Show server logs' action"})
 
           (and (realized? request-initiatilize)
                (p/alive? process))

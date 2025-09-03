@@ -13,6 +13,7 @@
         <postStartupActivity order="after EcaInitDb"
                              id="EcaStartServer"
                              implementation="dev.eca.eca_intellij.extension.init_server_startup.InitServerStartup"/>
+        <postStartupActivity implementation="dev.eca.eca_intellij.extension.register_actions_startup.RegisterActionsStartup" order="after EcaInitDb"/>
         <applicationService serviceImplementation="dev.eca.eca_intellij.extension.SettingsState"/>
         <applicationConfigurable
             parentId="tools"

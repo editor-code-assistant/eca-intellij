@@ -18,6 +18,8 @@
    :server-config {}
    :on-status-changed-fns {}
    :on-focus-changed-fns {}
+   :on-stderr-log-updated-fns {}
+   :server-stderr-string ""
    :settings nil
    :on-settings-changed-fns {}})
 

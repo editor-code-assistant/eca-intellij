@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Add support for stderr logs access.
+- Improve debugging MCP servers failed.
+
 ## 0.4.2
 
 - Bump `eca-webview`.

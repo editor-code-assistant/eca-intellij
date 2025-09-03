@@ -7,6 +7,7 @@
    [com.github.ericdallo.clj4intellij.logger :as logger]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.extension.server-logs :as server-logs]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
    [com.intellij.openapi.editor Editor]
@@ -149,6 +150,7 @@
                                                           (fn []
                                                             (when vfile
                                                               (.openFile (FileEditorManager/getInstance project) vfile true)))}))
+          "editor/openServerLogs" (server-logs/open-server-logs! project)
           (logger/warn "Unkown webview message type:" type)))))
   nil)
 

@@ -6,7 +6,7 @@
    [dev.eca.eca-intellij.server :as server])
   (:import
    [com.intellij.ide DataManager]
-   [com.intellij.openapi.actionSystem DefaultActionGroup]
+   [com.intellij.openapi.actionSystem ActionManager DefaultActionGroup]
    [com.intellij.openapi.project DumbAwareAction Project]
    [com.intellij.openapi.ui.popup JBPopupFactory JBPopupFactory$ActionSelectionAid]
    [com.intellij.openapi.wm
@@ -33,14 +33,14 @@
 
 (defn ^:private restart-server-action [^Project project]
   (proxy+
-   ["Restart server"]
+   ["Restart server" "Restart server" Icons/ECA]
    DumbAwareAction
     (actionPerformed [_ _event]
       (server/shutdown! project)
       (server/start! project))))
 
 (defn ^:private status-bar-title [project]
-  (str "ECA: " (name (db/get-in project [:status]))))
+  (str "ECA: " (name (db/get-in project [:status] :stopped))))
 
 (def-extension EcaStatusBarFactory []
   StatusBarWidgetFactory
@@ -80,6 +80,8 @@
                           (JBPopupFactory/getInstance)
                           (status-bar-title project)
                           (doto (DefaultActionGroup.)
+                            (.add (.getAction (ActionManager/getInstance) "Eca.ShowServerLogs"))
+                            (.addSeparator)
                             (.add (restart-server-action project)))
                           (.getDataContext (DataManager/getInstance) component)
                           JBPopupFactory$ActionSelectionAid/SPEEDSEARCH
