@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve tool call block header.
+
 ## 0.5.3
 
 - Improve chat performance of long tool calls and reason freezing editor.
