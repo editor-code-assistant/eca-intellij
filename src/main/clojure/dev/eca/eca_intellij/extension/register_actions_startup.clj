@@ -33,5 +33,5 @@
                             :text "ECA Actions"
                             :icon Icons/ECA
                             :children [{:type :add-to-group :group-id "ToolsMenu" :anchor :first}
-                                       {:type :reference :ref "ClojureREPL.RunCursorTest"}
+                                       {:type :reference :ref "Eca.ShowServerLogs"}
                                        {:type :separator}])))
