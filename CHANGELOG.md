@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix group id for eca actions
+
 ## 0.5.1
 
 - Bump eca-webview.
