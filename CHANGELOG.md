@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.5.2
+
 - Fix group id for eca actions
 
 ## 0.5.1
