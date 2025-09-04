@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve chat performance of long tool calls and reason freezing editor.
+
 ## 0.5.2
 
 - Fix group id for eca actions
