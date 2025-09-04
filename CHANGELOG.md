@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.5.4
+
 - Improve tool call block header.
 
 ## 0.5.3
