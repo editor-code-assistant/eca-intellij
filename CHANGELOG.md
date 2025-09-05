@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump webview: support toolCallRunning content.
+
 ## 0.5.4
 
 - Improve tool call block header.
