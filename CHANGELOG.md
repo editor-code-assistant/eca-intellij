@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support time on reason and tool call blocks.
+
 ## 0.5.5
 
 - Bump webview: support toolCallRunning content.
