@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.5.5
+
 - Bump webview: support toolCallRunning content.
 
 ## 0.5.4
