@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.6.0
+
 - Support time on reason and tool call blocks.
 
 ## 0.5.5
