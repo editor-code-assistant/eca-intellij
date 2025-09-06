@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.6.1
+
 - Improve theme colors.
 
 ## 0.6.0
