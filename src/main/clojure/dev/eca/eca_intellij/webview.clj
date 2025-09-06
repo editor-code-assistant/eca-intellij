@@ -35,7 +35,10 @@
      "input-bg" (hex (JBColor/namedColor "OptionPane.background"))
      "input-fg" (hex (JBColor/namedColor "TextField.caretForeground"))
      "input-placeholder-fg" (hex (JBColor/namedColor "Editor.foreground"))
-     "highlight-bg" (hex (JBColor/namedColor "Borders.ContrastBorderColor"))
+     "base-border" (if (= (hex (.getDefaultBackground global-scheme)) (hex (JBColor/namedColor "Borders.ContrastBorderColor")))
+                     (hex (JBColor/namedColor "Editor.background"))
+                     (hex (JBColor/namedColor "Borders.ContrastBorderColor")))
+     "base-hover" (hex (JBColor/namedColor "Borders.ContrastBorderColor"))
 
      "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
      "link-fg" (hex (JBColor/namedColor "Hyperlink.linkColor"))

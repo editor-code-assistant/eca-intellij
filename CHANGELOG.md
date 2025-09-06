@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve theme colors.
+
 ## 0.6.0
 
 - Support time on reason and tool call blocks.
