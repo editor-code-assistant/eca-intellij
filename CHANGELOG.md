@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.6.2
+
 - Improve markdown code in chat.
 
 ## 0.6.1
