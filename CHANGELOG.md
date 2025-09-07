@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.6.3
+
 - Support empty reason blocks in UI.
 
 ## 0.6.2
