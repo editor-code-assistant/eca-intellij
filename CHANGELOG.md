@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support empty reason blocks in UI.
+
 ## 0.6.2
 
 - Improve markdown code in chat.
