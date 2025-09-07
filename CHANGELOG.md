@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve markdown code in chat.
+
 ## 0.6.1
 
 - Improve theme colors.
