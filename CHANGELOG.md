@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support @cursor context.
+
 ## 0.6.3
 
 - Support empty reason blocks in UI.
