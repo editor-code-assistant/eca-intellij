@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.7.0
+
 - Support @cursor context.
 
 ## 0.6.3
