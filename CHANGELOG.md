@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Minor theme improvements.
+
 ## 0.7.0
 
 - Support @cursor context.
