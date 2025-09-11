@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.7.1
+
 - Minor theme improvements.
 
 ## 0.7.0
