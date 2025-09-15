@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve welcome message.
+
 ## 0.7.1
 
 - Minor theme improvements.
