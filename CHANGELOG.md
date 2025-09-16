@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.7.3
+
 - Fix exceptions when focusing outside chat.
 
 ## 0.7.2
