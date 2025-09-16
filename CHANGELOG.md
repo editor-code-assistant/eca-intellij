@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix exceptions when focusing outside chat.
+
 ## 0.7.2
 
 - Improve welcome message.

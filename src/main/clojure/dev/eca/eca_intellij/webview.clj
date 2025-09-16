@@ -103,21 +103,24 @@
   (when-let [project (some-> editor .getProject)]
     (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
           cef-browser (.getCefBrowser browser)]
-      (when-let [vfile (.getVirtualFile editor)]
-        (let [caret-model (.getCaretModel editor)
-              primary-caret (.getPrimaryCaret caret-model)
-              selection-start (.getSelectionStart primary-caret)
-              selection-end (.getSelectionEnd primary-caret)
-              document (.getDocument editor)
-              start-line (.getLineNumber document selection-start)
-              start-char (- selection-start (.getLineStartOffset document start-line))
-              end-line (.getLineNumber document selection-end)
-              end-char (- selection-end (.getLineStartOffset document end-line))]
-          (send-msg! cef-browser {:type "editor/focusChanged"
-                                  :data {:type :fileFocused
-                                         :path (.getPath vfile)
-                                         :position {:start {:line start-line :character start-char}
-                                                    :end {:line end-line :character end-char}}}}))))))
+      (app-manager/read-action!
+       {:run-fn
+        (fn []
+          (when-let [vfile (.getVirtualFile editor)]
+            (let [caret-model (.getCaretModel editor)
+                  primary-caret (.getPrimaryCaret caret-model)
+                  selection-start (.getSelectionStart primary-caret)
+                  selection-end (.getSelectionEnd primary-caret)
+                  document (.getDocument editor)
+                  start-line (.getLineNumber document selection-start)
+                  start-char (- selection-start (.getLineStartOffset document start-line))
+                  end-line (.getLineNumber document selection-end)
+                  end-char (- selection-end (.getLineStartOffset document end-line))]
+              (send-msg! cef-browser {:type "editor/focusChanged"
+                                      :data {:type :fileFocused
+                                             :path (.getPath vfile)
+                                             :position {:start {:line start-line :character start-char}
+                                                        :end {:line end-line :character end-char}}}}))))}))))
 
 (defn handle [msg ^Project project]
   (let [{:keys [type data]} (json/parse-string msg keyword)
