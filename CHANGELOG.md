@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.8.0
+
 - Support chat title.
 
 ## 0.7.5
