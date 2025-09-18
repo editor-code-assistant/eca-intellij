@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.7.5
+
 - Improve ECA to use user shell for getting envs.
 
 ## 0.7.4
