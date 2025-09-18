@@ -94,6 +94,23 @@
                                       :chat-selected-model (:chat-default-model result)
                                       :welcome-message (:chat-welcome-message result)})))
 
+(defn ^:private env []
+  (let [env (EnvironmentUtil/getEnvironmentMap)
+        ;; We get env from logged user shell
+        shell-env (try
+                    (let [{:keys [out]} (p/shell {:out :string} (or (get env "SHELL") "bash") "--login" "-c" "env")]
+                      (->> (string/split-lines out)
+                           (map #(string/split % #"=" 2))
+                           (filter #(= 2 (count %)))
+                           (map (fn [[k v]] [k v]))
+                           (into {})))
+                    (catch Exception e
+                      (logger/warn "Could not get user shell env: " (.getMessage e))
+                      nil))]
+    (merge {}
+           (EnvironmentUtil/getEnvironmentMap)
+           shell-env)))
+
 (defn ^:private spawn-server! [^Project project indicator server-path]
   (tasks/set-progress indicator "ECA: Starting...")
   (let [server-args (or (some-> (db/get-in project [:settings :server-args])
@@ -103,7 +120,7 @@
         _ (logger/info "Spawning server:" (string/join " " command))
         process (p/process command
                            {:dir (.getBasePath project)
-                            :env (EnvironmentUtil/getEnvironmentMap)})
+                            :env (env)})
         ;; TODO pass trace-level
         client (api/client (:in process) (:out process) nil)]
     (db/assoc-in project [:server-process] process)

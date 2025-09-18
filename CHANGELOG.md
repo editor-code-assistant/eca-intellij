@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve ECA to use user shell for getting envs.
+
 ## 0.7.4
 
 - Improve chat commands completion.
