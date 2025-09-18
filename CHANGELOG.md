@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve chat commands completion.
+
 ## 0.7.3
 
 - Fix exceptions when focusing outside chat.
