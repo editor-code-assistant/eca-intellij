@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.7.4
+
 - Improve chat commands completion.
 
 ## 0.7.3
