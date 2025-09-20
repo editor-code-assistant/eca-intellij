@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.8.1
+
 - Support increase/decrease font size. #2
 
 ## 0.8.0
