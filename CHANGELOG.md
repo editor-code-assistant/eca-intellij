@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support increase/decrease font size. #2
+
 ## 0.8.0
 
 - Support chat title.
