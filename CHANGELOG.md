@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add Intellij client-info to server initialize.
+
 ## 0.8.1
 
 - Support increase/decrease font size. #2

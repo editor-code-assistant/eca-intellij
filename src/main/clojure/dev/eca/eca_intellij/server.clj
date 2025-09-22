@@ -11,6 +11,7 @@
    [dev.eca.eca-intellij.notification :as notification])
   (:import
    [com.github.ericdallo.clj4intellij ClojureClassLoader]
+   [com.intellij.openapi.application ApplicationInfo]
    [com.intellij.openapi.project Project]
    [com.intellij.util EnvironmentUtil]
    [java.io File]
@@ -143,6 +144,8 @@
     (tasks/set-progress indicator "ECA: Initializing...")
     (let [request-initiatilize (api/request! client [:initialize
                                                      {:initialization-options (db/get-in project [:settings])
+                                                      :client-info {:name "IntelliJ"
+                                                                    :version (str (.getBuild (ApplicationInfo/getInstance)))}
                                                       :capabilities client-capabilities
                                                       :workspace-folders [{:name (.getName project)
                                                                            :uri (str (.toURI (io/file (.getBasePath project))))}]}])]
