@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.8.2
+
 - Add Intellij client-info to server initialize.
 
 ## 0.8.1
