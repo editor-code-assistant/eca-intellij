@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.9.0
+
 - Remove deprecated repoMap as defaultContext.
 
 ## 0.8.2
