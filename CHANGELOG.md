@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Remove deprecated repoMap as defaultContext.
+
 ## 0.8.2
 
 - Add Intellij client-info to server initialize.
