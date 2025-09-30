@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.10.0
+
 - Support prompts args input.
 
 ## 0.9.0
