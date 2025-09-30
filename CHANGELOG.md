@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support prompts args input.
+
 ## 0.9.0
 
 - Remove deprecated repoMap as defaultContext.

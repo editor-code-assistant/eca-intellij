@@ -14,6 +14,7 @@
    [com.intellij.openapi.editor.colors EditorColorsManager]
    [com.intellij.openapi.fileEditor FileEditorManager]
    [com.intellij.openapi.project Project]
+   [com.intellij.openapi.ui Messages]
    [com.intellij.openapi.util.io FileUtil]
    [com.intellij.openapi.vfs LocalFileSystem]
    [com.intellij.ui ColorUtil JBColor]
@@ -160,6 +161,16 @@
           "chat/delete" @(api/request! client [:chat/delete data])
           "mcp/startServer" (api/notify! client [:mcp/startServer data])
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
+          "editor/readInput" (app-manager/invoke-later!
+                              {:invoke-fn (fn []
+                                            (let [user-input (Messages/showInputDialog
+                                                              project
+                                                              ^String (:message data)
+                                                              "Input Required"
+                                                              (Messages/getQuestionIcon))]
+                                              (send-msg! cef-browser {:type "editor/readInput"
+                                                                      :data {:requestId (:requestId data)
+                                                                             :value user-input}})))})
           "editor/openFile" (let [path (:path data)
                                   sys-ind-path (FileUtil/toSystemIndependentName path)
                                   vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance) sys-ind-path)]
