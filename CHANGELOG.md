@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.10.1
+
 - Avoid exceptions when checking logs.
 
 ## 0.10.0
