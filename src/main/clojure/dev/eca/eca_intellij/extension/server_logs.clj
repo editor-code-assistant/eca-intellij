@@ -27,11 +27,11 @@
         open-files (.getOpenFiles file-editor-manager)]
     (doseq [^VirtualFile vf open-files]
       (when (= "eca-stderr.txt" (.getName vf))
-        (when-let [document  (.getDocument (FileDocumentManager/getInstance) vf)]
-          (app-manager/invoke-later! {:invoke-fn
-                                      (fn []
-                                        (app-manager/write-action!
-                                         {:run-fn (fn []
-                                                    (.setText document log-content))}))}))))))
+        (app-manager/invoke-later! {:invoke-fn
+                                    (fn []
+                                      (app-manager/write-action!
+                                       {:run-fn (fn []
+                                                  (when-let [document  (.getDocument (FileDocumentManager/getInstance) vf)]
+                                                    (.setText document log-content)))}))})))))
 
 (def update-logs! (shared/throttle update-logs-in-editor! 1000))

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Avoid exceptions when checking logs.
+
 ## 0.10.0
 
 - Support prompts args input.
