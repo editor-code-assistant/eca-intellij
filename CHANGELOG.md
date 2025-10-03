@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.11.0
+
 - Improve @cursor context ui.
 
 ## 0.10.1
