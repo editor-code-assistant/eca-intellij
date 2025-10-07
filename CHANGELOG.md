@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.11.2
+
 - Improve user shel env to spawn a interactive shell to get env.
 
 ## 0.11.1
