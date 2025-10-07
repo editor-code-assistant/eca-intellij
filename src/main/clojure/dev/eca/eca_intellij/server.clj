@@ -99,7 +99,8 @@
   (let [env (EnvironmentUtil/getEnvironmentMap)
         ;; We get env from logged user shell
         shell-env (try
-                    (let [{:keys [out]} (p/shell {:out :string} (or (get env "SHELL") "bash") "--login" "-c" "env")]
+                    (let [{:keys [out]} (p/shell {:out :string}
+                                                 (or (get env "SHELL") "bash") "--login" "-i" "-c" "env")]
                       (->> (string/split-lines out)
                            (map #(string/split % #"=" 2))
                            (filter #(= 2 (count %)))
