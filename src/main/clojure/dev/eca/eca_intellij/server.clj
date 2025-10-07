@@ -117,11 +117,12 @@
   (let [server-args (or (some-> (db/get-in project [:settings :server-args])
                                 (string/split #" "))
                         [])
+        env (env)
         command (concat [server-path "server"] server-args)
-        _ (logger/info "Spawning server:" (string/join " " command))
+        _ (logger/info "Spawning server:" (string/join " " command) "with env" env)
         process (p/process command
                            {:dir (.getBasePath project)
-                            :env (env)})
+                            :env env})
         ;; TODO pass trace-level
         client (api/client (:in process) (:out process) nil)]
     (db/assoc-in project [:server-process] process)

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve logging for env used in eca process.
+
 ## 0.11.0
 
 - Improve @cursor context ui.
