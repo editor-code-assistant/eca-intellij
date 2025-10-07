@@ -29,6 +29,7 @@
 
 (defn ^:private theme-css-map []
   (let [global-scheme (.getGlobalScheme (EditorColorsManager/getInstance))]
+    ;; Most come from https://github.com/JetBrains/intellij-community/blob/master/platform/platform-resources/src/themes/metadata/IntelliJPlatform.themeMetadata.json
     {"editor-bg" (hex (.getDefaultBackground global-scheme))
      "editor-fg" (hex (JBColor/namedColor "Editor.foreground"))
      "panel-bg" (hex (JBColor/namedColor "Editor.background"))
@@ -43,6 +44,19 @@
 
      "item-selectable-fg" (hex (JBColor/namedColor "Editor.foreground"))
      "link-fg" (hex (JBColor/namedColor "Hyperlink.linkColor"))
+
+     "button-primary-fg" (hex (JBColor/namedColor "Button.default.foreground"))
+     "button-primary-bg" (hex (JBColor/namedColor "Button.default.startBackground"))
+     "button-primary-border" (hex (JBColor/namedColor "Button.default.borderColor"))
+     "button-primary-hover-bg" (hex (JBColor/namedColor "Button.default.focusColor"))
+     "button-primary-active-bg" (hex (JBColor/namedColor "Button.default.focusColor"))
+
+     "button-secondary-fg" (hex (JBColor/namedColor "Button.foreground"))
+     "button-secondary-bg" (hex (JBColor/namedColor "Button.background"))
+     "button-secondary-border" (hex (JBColor/namedColor "Button.default.borderColor"))
+     "button-secondary-hover-bg" (hex (JBColor/namedColor "Button.default.focusColor"))
+     "button-secondary-active-bg" (hex (JBColor/namedColor "Button.default.startBackground"))
+
      ;; TODO finish colors map with JBColor
      ;; "success-fg"
      ;; "warning-fg"
