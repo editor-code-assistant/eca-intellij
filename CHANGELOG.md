@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support Accept and remember on tool call.
+
 ## 0.11.2
 
 - Improve user shel env to spawn a interactive shell to get env.
