@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.12.0
+
 - Support Accept and remember on tool call.
 
 ## 0.11.2
