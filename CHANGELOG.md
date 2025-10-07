@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.11.1
+
 - Improve logging for env used in eca process.
 
 ## 0.11.0
