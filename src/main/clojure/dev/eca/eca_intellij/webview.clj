@@ -192,6 +192,32 @@
                                                           (fn []
                                                             (when vfile
                                                               (.openFile (FileEditorManager/getInstance project) vfile true)))}))
+          "editor/openGlobalConfig"
+          (app-manager/invoke-later!
+           {:invoke-fn
+            (fn []
+              (let [home (System/getProperty "user.home")
+                    config-home (or (System/getenv "XDG_CONFIG_HOME")
+                                    (.getAbsolutePath (io/file home ".config")))
+                    config-file (io/file config-home "eca" "config.json")]
+                (try
+                  (when-let [config-dir (.getParentFile config-file)]
+                    (when-not (.exists config-dir)
+                      (.mkdirs config-dir)))
+                  (when-not (.exists config-file)
+                    (spit config-file "{}"))
+                  (if-let [vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance)
+                                                            (FileUtil/toSystemIndependentName
+                                                             (.getAbsolutePath config-file)))]
+                    (.openFile (FileEditorManager/getInstance project) vfile true)
+                    (Messages/showErrorDialog project
+                                              "Failed to open global config file."
+                                              "ECA Global Config"))
+                  (catch Exception e
+                    (Messages/showErrorDialog project
+                                              (str "Failed to prepare global config: "
+                                                   (or (.getMessage e) (str e)))
+                                              "ECA Global Config")))))})
           "editor/openServerLogs" (server-logs/open-server-logs! project)
           (logger/warn "Unkown webview message type:" type)))))
   nil)
