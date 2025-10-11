@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support opening global config file from chat window.
+
 ## 0.12.0
 
 - Support Accept and remember on tool call.
