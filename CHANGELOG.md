@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.13.0
+
 - Support opening global config file from chat window.
 
 ## 0.12.0
