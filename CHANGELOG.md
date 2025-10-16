@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.14.0
+
 - Support hooks in chat.
 
 ## 0.13.0
