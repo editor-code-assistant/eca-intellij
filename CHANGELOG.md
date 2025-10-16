@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support hooks in chat.
+
 ## 0.13.0
 
 - Support opening global config file from chat window.
