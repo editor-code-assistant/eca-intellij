@@ -138,7 +138,6 @@
         browser (create-webview project url)
         content (.createContent (ContentFactory/getInstance) (.getComponent browser) nil false)
         actions (->> [(.getAction (ActionManager/getInstance) "MaximizeToolWindow")
-                      (.getAction (ActionManager/getInstance) "Eca.ShowServerLogs")
                       (reload-webview url)
                       (when (config/dev?) (open-devtools))]
 

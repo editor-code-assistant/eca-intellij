@@ -134,8 +134,8 @@
               (send-msg! cef-browser {:type "editor/focusChanged"
                                       :data {:type :fileFocused
                                              :path (.getPath vfile)
-                                             :position {:start {:line start-line :character start-char}
-                                                        :end {:line end-line :character end-char}}}}))))}))))
+                                             :position {:start {:line (inc start-line) :character (inc start-char)}
+                                                        :end {:line (inc end-line) :character (inc end-char)}}}}))))}))))
 
 (defn handle [msg ^Project project]
   (let [{:keys [type data]} (json/parse-string msg keyword)
@@ -206,13 +206,15 @@
                       (.mkdirs config-dir)))
                   (when-not (.exists config-file)
                     (spit config-file "{}"))
-                  (if-let [vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance)
-                                                            (FileUtil/toSystemIndependentName
-                                                             (.getAbsolutePath config-file)))]
-                    (.openFile (FileEditorManager/getInstance project) vfile true)
-                    (Messages/showErrorDialog project
-                                              "Failed to open global config file."
-                                              "ECA Global Config"))
+                  (app-manager/invoke-later!
+                   {:invoke-fn (fn []
+                                 (if-let [vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance)
+                                                                           (FileUtil/toSystemIndependentName
+                                                                            (.getAbsolutePath config-file)))]
+                                   (.openFile (FileEditorManager/getInstance project) vfile true)
+                                   (Messages/showErrorDialog project
+                                                             "Failed to open global config file."
+                                                             "ECA Global Config")))})
                   (catch Exception e
                     (Messages/showErrorDialog project
                                               (str "Failed to prepare global config: "

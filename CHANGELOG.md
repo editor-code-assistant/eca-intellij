@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix @cursor context correct tracking position/file.
+
 ## 0.14.0
 
 - Support hooks in chat.
