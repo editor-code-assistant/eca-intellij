@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.15.0
+
 - Bump webview supporting json outputs
 
 ## 0.14.2
