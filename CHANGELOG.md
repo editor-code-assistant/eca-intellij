@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.14.2
+
 - Improve icon for dark themes.
 
 ## 0.14.1
