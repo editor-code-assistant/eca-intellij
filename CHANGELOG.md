@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump webview supporting json outputs
+
 ## 0.14.2
 
 - Improve icon for dark themes.
