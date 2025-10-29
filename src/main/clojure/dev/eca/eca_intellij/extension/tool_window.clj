@@ -4,6 +4,7 @@
    [com.rpl.proxy-plus :refer [proxy+]]
    [dev.eca.eca-intellij.config :as config]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.shared :as shared]
    [dev.eca.eca-intellij.webview :as webview])
   (:import
    [com.intellij.ide BrowserUtil]
@@ -13,7 +14,6 @@
    [com.intellij.openapi.wm ToolWindow ToolWindowAnchor ToolWindowFactory]
    [com.intellij.ui.content ContentFactory]
    [com.intellij.ui.jcef JBCefBrowser JBCefJSQuery]
-   [dev.eca.eca_intellij Icons]
    [dev.eca.eca_intellij EcaSchemeHandlerFactory]
    [org.cef CefApp]
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
@@ -113,7 +113,7 @@
 
 (defn ^:private reload-webview [url]
   (proxy+
-   ["Reload ECA webview" "Reload ECA webview" Icons/ECA]
+   ["Reload ECA webview" "Reload ECA webview" (shared/logo-icon)]
    DumbAwareAction
     (actionPerformed [_ _event]
       (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
@@ -122,7 +122,7 @@
 
 (defn ^:private open-devtools []
   (proxy+
-   ["Open ECA webview devtools" "Open ECA webview devtools" Icons/ECA]
+   ["Open ECA webview devtools" "Open ECA webview devtools" (shared/logo-icon)]
    DumbAwareAction
     (actionPerformed [_ _event]
       (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
@@ -163,7 +163,7 @@
   (manager [_ _ _])
   (manage [_ _ _ _])
 
-  (getIcon [_] Icons/ECA)
+  (getIcon [_] (shared/logo-icon))
 
   (getAnchor [_] ToolWindowAnchor/RIGHT))
 

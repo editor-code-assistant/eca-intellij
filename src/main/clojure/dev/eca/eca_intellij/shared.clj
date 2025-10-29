@@ -2,7 +2,11 @@
   (:require
    [camel-snake-kebab.core :as csk]
    [clojure.core.async :refer [<! chan go-loop put! sliding-buffer timeout]]
-   [clojure.walk :as walk]))
+   [clojure.walk :as walk])
+  (:import
+   [com.intellij.util.ui UIUtil]
+   [javax.swing Icon]
+   [dev.eca.eca_intellij Icons]))
 
 (defn map->camel-cased-map [m]
   (let [f (fn [[k v]]
@@ -23,3 +27,8 @@
       (recur))
     (fn [& args]
       (put! c (or args [])))))
+
+(defn logo-icon ^Icon []
+  (if (UIUtil/isUnderDarcula)
+    Icons/ECA_DARK
+    Icons/ECA_LIGHT))

@@ -2,13 +2,13 @@
   (:require
    [com.github.ericdallo.clj4intellij.action :as action]
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
-   [dev.eca.eca-intellij.extension.server-logs :as server-logs])
+   [dev.eca.eca-intellij.extension.server-logs :as server-logs]
+   [dev.eca.eca-intellij.shared :as shared])
   (:import
    [com.intellij.openapi.actionSystem AnActionEvent CommonDataKeys]
    [com.intellij.openapi.editor Editor]
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.startup ProjectActivity]
-   [dev.eca.eca_intellij Icons]
    [kotlinx.coroutines CoroutineScope]))
 
 (defn ^:private action-event->project ^Project [^AnActionEvent event]
@@ -26,12 +26,12 @@
     (action/register-action! :id "Eca.ShowServerLogs"
                              :title "ECA: show server Logs"
                              :description "Show ECA Server Logs"
-                             :icon Icons/ECA
+                             :icon (shared/logo-icon)
                              :on-performed #'open-server-logs-action)
     (action/register-group! :id "Eca.Actions"
                             :popup true
                             :text "ECA Actions"
-                            :icon Icons/ECA
+                            :icon (shared/logo-icon)
                             :children [{:type :add-to-group :group-id "ToolsMenu" :anchor :first}
                                        {:type :reference :ref "Eca.ShowServerLogs"}
                                        {:type :separator}])))

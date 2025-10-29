@@ -1,7 +1,5 @@
 (ns dev.eca.eca-intellij.db
   (:refer-clojure :exclude [get-in assoc-in update-in])
-  (:require
-   [dev.eca.eca-intellij.db :as db])
   (:import
    [com.intellij.openapi.project Project]
    [dev.eca.eca_intellij.extension SettingsState]))

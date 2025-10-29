@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve icon for dark themes.
+
 ## 0.14.1
 
 - Fix @cursor context correct tracking position/file.

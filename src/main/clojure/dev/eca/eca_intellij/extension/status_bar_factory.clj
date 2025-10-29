@@ -3,7 +3,8 @@
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
    [com.rpl.proxy-plus :refer [proxy+]]
    [dev.eca.eca-intellij.db :as db]
-   [dev.eca.eca-intellij.server :as server])
+   [dev.eca.eca-intellij.server :as server]
+   [dev.eca.eca-intellij.shared :as shared])
   (:import
    [com.intellij.ide DataManager]
    [com.intellij.openapi.actionSystem ActionManager DefaultActionGroup]
@@ -17,7 +18,6 @@
    [com.intellij.openapi.wm.impl.status.widget StatusBarWidgetsManager]
    [com.intellij.ui.awt RelativePoint]
    [com.intellij.util Consumer]
-   [dev.eca.eca_intellij Icons]
    [java.awt Point]
    [java.awt.event MouseEvent]
    [kotlinx.coroutines CoroutineScope]))
@@ -33,7 +33,7 @@
 
 (defn ^:private restart-server-action [^Project project]
   (proxy+
-   ["Restart server" "Restart server" Icons/ECA]
+   ["Restart server" "Restart server" (shared/logo-icon)]
    DumbAwareAction
     (actionPerformed [_ _event]
       (server/shutdown! project)
@@ -90,4 +90,4 @@
              true)))
        (getTooltipText [_] (status-bar-title project))
        (getIcon [_]
-         Icons/ECA)))))
+         (shared/logo-icon))))))
