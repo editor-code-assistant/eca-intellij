@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.15.1
+
 - Bump wevbiew adding shortcut to tool call approval.
 - Avoid sending multiple prompts while one is loading.
 
