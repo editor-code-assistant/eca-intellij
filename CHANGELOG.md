@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Bump wevbiew adding shortcut to tool call approval.
+- Avoid sending multiple prompts while one is loading.
+
 ## 0.15.0
 
 - Bump webview supporting json outputs
