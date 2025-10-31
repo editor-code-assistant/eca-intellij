@@ -30,7 +30,7 @@ Check [troubleshooting](http://eca.dev/troubleshooting) docs section.
 
 ## Development
 
-## Webview
+### Webview
 
 To start the [eca-webview](https://github.com/editor-code-assistant/eca-webview):
 
@@ -40,7 +40,7 @@ bb dev-webview
 
 This will start Vite dev server on `http://localhost:5173`, so any changes will be updated on the IntelliJ live.
 
-## Plugin
+### Plugin
 
 `bb install-plugin <pathToYourIntellij>` to install the plugin locally.
 
