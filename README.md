@@ -20,6 +20,10 @@ For more details about ECA, features and configuration, check [ECA server](https
 
 This extension will auto download `eca` and manage the process.
 
+## Install
+
+Just install the `ECA` plugin in [Jetbrains marketplace](https://plugins.jetbrains.com/plugin/28289-eca).
+
 ## Settings
 
 Go to Preferences > Tools > ECA.
