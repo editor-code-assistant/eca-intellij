@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support command to add context to system prompt.
+
 ## 0.15.1
 
 - Bump wevbiew adding shortcut to tool call approval.

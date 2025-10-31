@@ -19,8 +19,7 @@
    [com.intellij.openapi.vfs LocalFileSystem]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
-   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
-   [org.cef.browser CefBrowser]))
+   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]))
 
 (set! *warn-on-reflection* true)
 
@@ -88,59 +87,57 @@
         (theme-css-map))
        "}"))
 
-(defn ^:private send-msg! [^CefBrowser cef-browser msg]
-  (.executeJavaScript cef-browser
-                      (format "window.postMessage(%s, \"*\");"
-                              (json/generate-string (shared/map->camel-cased-map msg)))
-                      (.getURL cef-browser)
-                      0))
+(defn ^:private send-msg! [^Project project msg]
+  (when-let [browser ^JBCefBrowser (db/get-in project [:webview-browser])]
+    (let [cef-browser (.getCefBrowser browser)]
+      (.executeJavaScript (.getCefBrowser browser)
+                          (format "window.postMessage(%s, \"*\");"
+                                  (json/generate-string (shared/map->camel-cased-map msg)))
+                          (.getURL cef-browser)
+                          0))))
 
 (defn handle-config-changed [^Project project config]
   (when-let [settings (db/get-in project [:settings])]
-    (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
-          cef-browser (.getCefBrowser browser)]
-      (send-msg! cef-browser
-                 {:type "config/updated"
-                  :data (merge config settings)}))))
+    (send-msg! project
+               {:type "config/updated"
+                :data (merge config settings)})))
 
 (defn handle-server-status-changed [status ^Project project]
-  (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
-        cef-browser (.getCefBrowser browser)]
-    (when (= :running status)
-      (send-msg! cef-browser {:type "server/setWorkspaceFolders"
-                              :data [{:name (.getName project)
-                                      :uri (str (.toURI (io/file (.getBasePath project))))}]}))
-    (when status
-      (send-msg! cef-browser {:type "server/statusChanged"
-                              :data (string/capitalize (name status))}))))
+  (when (= :running status)
+    (send-msg! project {:type "server/setWorkspaceFolders"
+                        :data [{:name (.getName project)
+                                :uri (str (.toURI (io/file (.getBasePath project))))}]}))
+  (when status
+    (send-msg! project {:type "server/statusChanged"
+                        :data (string/capitalize (name status))})))
+
+(defn add-context-to-system-prompt [context ^Project project]
+  (send-msg! project {:type "chat/addContextToSystemPrompt"
+                      :data context}))
 
 (defn ^:private on-focus-changed [^Editor editor _]
   (when-let [project (some-> editor .getProject)]
-    (let [browser ^JBCefBrowser (db/get-in project [:webview-browser])
-          cef-browser (.getCefBrowser browser)]
-      (app-manager/read-action!
-       {:run-fn
-        (fn []
-          (when-let [vfile (.getVirtualFile editor)]
-            (let [caret-model (.getCaretModel editor)
-                  primary-caret (.getPrimaryCaret caret-model)
-                  selection-start (.getSelectionStart primary-caret)
-                  selection-end (.getSelectionEnd primary-caret)
-                  document (.getDocument editor)
-                  start-line (.getLineNumber document selection-start)
-                  start-char (- selection-start (.getLineStartOffset document start-line))
-                  end-line (.getLineNumber document selection-end)
-                  end-char (- selection-end (.getLineStartOffset document end-line))]
-              (send-msg! cef-browser {:type "editor/focusChanged"
-                                      :data {:type :fileFocused
-                                             :path (.getPath vfile)
-                                             :position {:start {:line (inc start-line) :character (inc start-char)}
-                                                        :end {:line (inc end-line) :character (inc end-char)}}}}))))}))))
+    (app-manager/read-action!
+     {:run-fn
+      (fn []
+        (when-let [vfile (.getVirtualFile editor)]
+          (let [caret-model (.getCaretModel editor)
+                primary-caret (.getPrimaryCaret caret-model)
+                selection-start (.getSelectionStart primary-caret)
+                selection-end (.getSelectionEnd primary-caret)
+                document (.getDocument editor)
+                start-line (.getLineNumber document selection-start)
+                start-char (- selection-start (.getLineStartOffset document start-line))
+                end-line (.getLineNumber document selection-end)
+                end-char (- selection-end (.getLineStartOffset document end-line))]
+            (send-msg! project {:type "editor/focusChanged"
+                                :data {:type :fileFocused
+                                       :path (.getPath vfile)
+                                       :position {:start {:line (inc start-line) :character (inc start-char)}
+                                                  :end {:line (inc end-line) :character (inc end-char)}}}}))))})))
 
 (defn handle [msg ^Project project]
-  (let [{:keys [type data]} (json/parse-string msg keyword)
-        jb-cef-browser ^JBCefBrowser (db/get-in project [:webview-browser])
-        cef-browser (.getCefBrowser jb-cef-browser)]
+  (let [{:keys [type data]} (json/parse-string msg keyword)]
     (if (= "webview/ready" type)
       (do
         (handle-server-status-changed (db/get-in project [:status])
@@ -158,15 +155,15 @@
                                                                               :behavior (:behavior data)
                                                                               :requestId (str (data :requestId))
                                                                               :contexts (:contexts data)}])]
-                              (send-msg! cef-browser
+                              (send-msg! project
                                          {:type "chat/newChat"
                                           :data {:id (:chat-id result)}}))
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
-                                (send-msg! cef-browser {:type "chat/queryContext"
-                                                        :data result}))
+                                (send-msg! project {:type "chat/queryContext"
+                                                    :data result}))
           "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
-                                 (send-msg! cef-browser {:type "chat/queryCommands"
-                                                         :data result}))
+                                 (send-msg! project {:type "chat/queryCommands"
+                                                     :data result}))
           "editor/refresh"
           (.refreshFiles (LocalFileSystem/getInstance) [(.findFileByIoFile (LocalFileSystem/getInstance) (io/file (.getBasePath project)))] true true nil)
           "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
@@ -182,9 +179,9 @@
                                                               ^String (:message data)
                                                               "Input Required"
                                                               (Messages/getQuestionIcon))]
-                                              (send-msg! cef-browser {:type "editor/readInput"
-                                                                      :data {:requestId (:requestId data)
-                                                                             :value user-input}})))})
+                                              (send-msg! project {:type "editor/readInput"
+                                                                  :data {:requestId (:requestId data)
+                                                                         :value user-input}})))})
           "editor/openFile" (let [path (:path data)
                                   sys-ind-path (FileUtil/toSystemIndependentName path)
                                   vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance) sys-ind-path)]
@@ -231,15 +228,11 @@
 
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
-  (when-let [browser ^JBCefBrowser (db/get-in project [:webview-browser])]
-    (let [cef-browser (.getCefBrowser browser)]
-      (send-msg! cef-browser {:type "chat/contentReceived"
-                              :data params}))))
+  (send-msg! project {:type "chat/contentReceived"
+                      :data params}))
 
 (defmethod api/tool-server-updated  :default
   [{:keys [project]} params]
-  (when-let [browser ^JBCefBrowser (db/get-in project [:webview-browser])]
-    (let [cef-browser (.getCefBrowser browser)]
-      (db/assoc-in project [:session :mcp-servers (:name params)] params)
-      (send-msg! cef-browser {:type "tool/serversUpdated"
-                              :data (vals (db/get-in project [:session :mcp-servers]))}))))
+  (db/assoc-in project [:session :mcp-servers (:name params)] params)
+  (send-msg! project {:type "tool/serversUpdated"
+                      :data (vals (db/get-in project [:session :mcp-servers]))}))
