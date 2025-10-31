@@ -43,18 +43,21 @@
   ProjectActivity
   (execute [_this ^Project _project ^CoroutineScope _]
     (action/register-action! :id "Eca.ShowServerLogs"
-                             :title "ECA: show server Logs"
+                             :title "Show ECA server Logs"
                              :description "Show ECA Server Logs"
                              :icon (shared/logo-icon)
                              :on-performed #'open-server-logs-action)
     (action/register-action! :id "Eca.AddContextToSystemPrompt"
-                             :title "ECA: Add context to system prompt"
+                             :title "Add context to system prompt"
                              :description "Add context at cursor to system prompt in chat"
                              :on-performed #'add-context-to-system-prompt-action)
     (action/register-group! :id "Eca.Actions"
                             :popup true
-                            :text "ECA Actions"
+                            :text "ECA"
                             :icon (shared/logo-icon)
                             :children [{:type :add-to-group :group-id "ToolsMenu" :anchor :first}
+                                       {:type :add-to-group :group-id "EditorPopupMenu" :anchor :before :relative-to "RefactoringMenu"}
+                                       {:type :reference :ref "Eca.AddContextToSystemPrompt"}
+                                       {:type :separator}
                                        {:type :reference :ref "Eca.ShowServerLogs"}
                                        {:type :separator}])))
