@@ -3,6 +3,7 @@
    [com.github.ericdallo.clj4intellij.action :as action]
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
+   [dev.eca.eca-intellij.rewrite :as rewrite]
    [dev.eca.eca-intellij.shared :as shared]
    [dev.eca.eca-intellij.webview :as webview])
   (:import
@@ -10,6 +11,7 @@
    [com.intellij.openapi.editor Editor]
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.startup ProjectActivity]
+   [com.intellij.openapi.ui Messages]
    [kotlinx.coroutines CoroutineScope]))
 
 (defn ^:private action-event->project ^Project [^AnActionEvent event]
@@ -39,6 +41,12 @@
           context (get-context-at-cursor editor)]
       (webview/add-context-to-system-prompt context project))))
 
+(defn ^:private rewrite-selection-action [^AnActionEvent event]
+  (let [project (action-event->project event)]
+    (if-let [editor (.getData event CommonDataKeys/EDITOR_EVEN_IF_INACTIVE)]
+      (rewrite/start-rewrite-from-selection! project editor)
+      (Messages/showWarningDialog project "No active editor" "ECA Rewrite"))))
+
 (def-extension RegisterActionsStartup []
   ProjectActivity
   (execute [_this ^Project _project ^CoroutineScope _]
@@ -51,6 +59,10 @@
                              :title "Add context to system prompt"
                              :description "Add context at cursor to system prompt in chat"
                              :on-performed #'add-context-to-system-prompt-action)
+    (action/register-action! :id "Eca.RewriteSelection"
+                             :title "Rewrite selection"
+                             :description "Rewrite a text selection with ECA"
+                             :on-performed #'rewrite-selection-action)
     (action/register-group! :id "Eca.Actions"
                             :popup true
                             :text "ECA"
@@ -58,6 +70,8 @@
                             :children [{:type :add-to-group :group-id "ToolsMenu" :anchor :first}
                                        {:type :add-to-group :group-id "EditorPopupMenu" :anchor :before :relative-to "RefactoringMenu"}
                                        {:type :reference :ref "Eca.AddContextToSystemPrompt"}
+                                       {:type :separator}
+                                       {:type :reference :ref "Eca.RewriteSelection"}
                                        {:type :separator}
                                        {:type :reference :ref "Eca.ShowServerLogs"}
                                        {:type :separator}])))

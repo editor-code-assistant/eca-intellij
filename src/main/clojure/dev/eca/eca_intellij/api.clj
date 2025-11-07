@@ -17,6 +17,7 @@
 (defmulti config-updated (constantly :default))
 (defmulti chat-content-received (constantly :default))
 (defmulti tool-server-updated (constantly :default))
+(defmulti rewrite-content-received (constantly :default))
 
 (defn ^:private receive-message
   [client context message]
@@ -114,6 +115,7 @@
       "config/updated" (config-updated context params)
       "chat/contentReceived" (chat-content-received context params)
       "tool/serverUpdated" (tool-server-updated context params)
+      "rewrite/contentReceived" (rewrite-content-received context params)
 
       (logger/warn "Unknown LSP notification method" method))))
 
