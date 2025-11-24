@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.16.1
+
 ## 0.16.0
 
 - Support command to add context to system prompt.
