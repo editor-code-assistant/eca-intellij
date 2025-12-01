@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.17.0
+
 - Support rollback messages in chat
 
 ## 0.16.1
