@@ -13,7 +13,7 @@
    [com.intellij.openapi.util Disposer]
    [com.intellij.openapi.wm ToolWindow ToolWindowAnchor ToolWindowFactory]
    [com.intellij.ui.content ContentFactory]
-   [com.intellij.ui.jcef JBCefBrowser JBCefJSQuery]
+   [com.intellij.ui.jcef JBCefBrowser JBCefBrowserBase JBCefJSQuery]
    [dev.eca.eca_intellij EcaSchemeHandlerFactory]
    [org.cef CefApp]
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
@@ -116,7 +116,7 @@
    ["Reload ECA webview" "Reload ECA webview" (shared/logo-icon)]
    DumbAwareAction
     (actionPerformed [_ _event]
-      (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
+      (let [browser ^JBCefBrowserBase (db/get-in (first (db/all-projects)) [:webview-browser])]
         (.loadURL browser "http://eca/not-found.html")
         (.loadURL browser url)))))
 
@@ -125,7 +125,7 @@
    ["Open ECA webview devtools" "Open ECA webview devtools" (shared/logo-icon)]
    DumbAwareAction
     (actionPerformed [_ _event]
-      (let [browser ^JBCefBrowser (db/get-in (first (db/all-projects)) [:webview-browser])]
+      (let [browser ^JBCefBrowserBase (db/get-in (first (db/all-projects)) [:webview-browser])]
         (.openDevtools browser)))))
 
 (defn ^:private create-tool-window-content

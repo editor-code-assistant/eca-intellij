@@ -16,6 +16,7 @@
 
 (defmulti config-updated (constantly :default))
 (defmulti chat-content-received (constantly :default))
+(defmulti chat-cleared (constantly :default))
 (defmulti tool-server-updated (constantly :default))
 
 (defn ^:private receive-message
@@ -113,6 +114,7 @@
     (case method
       "config/updated" (config-updated context params)
       "chat/contentReceived" (chat-content-received context params)
+      "chat/cleared" (chat-cleared context params)
       "tool/serverUpdated" (tool-server-updated context params)
 
       (logger/warn "Unknown LSP notification method" method))))

@@ -7,6 +7,7 @@
    [com.github.ericdallo.clj4intellij.logger :as logger]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.editor :as editor]
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
@@ -170,6 +171,17 @@
           "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
           "chat/delete" @(api/request! client [:chat/delete data])
+          "chat/rollback" (let [option @(editor/quick-pick [{:id :rollback-messages-and-tools :label "Rollback messages and changes done by tool calls"}
+                                                            {:id :rollback-only-messages :label "Rollback only messages"}
+                                                            {:id :rollback-only-tools :label "Rollback only changes done by tool calls"}]
+                                                           {:title "Select which rollback type"})
+                                includes (case (:id option)
+                                           :rollback-messages-and-tools ["messages" "tools"]
+                                           :rollback-only-messages ["messages"]
+                                           :rollback-only-tools ["tools"]
+                                           nil)]
+                            (when includes
+                              @(api/request! client [:chat/rollback (assoc data :includes includes)])))
           "mcp/startServer" (api/notify! client [:mcp/startServer data])
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
           "editor/readInput" (app-manager/invoke-later!
@@ -229,6 +241,11 @@
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/contentReceived"
+                      :data params}))
+
+(defmethod api/chat-cleared :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "chat/cleared"
                       :data params}))
 
 (defmethod api/tool-server-updated  :default
