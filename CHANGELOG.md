@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix diffs crashing for new files.
+
 ## 0.17.0
 
 - Support rollback messages in chat
