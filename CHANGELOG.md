@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.17.1
+
 - Fix diffs crashing for new files.
 
 ## 0.17.0
