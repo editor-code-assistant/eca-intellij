@@ -11,6 +11,7 @@
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
+   [com.intellij.ide BrowserUtil]
    [com.intellij.openapi.editor Editor]
    [com.intellij.openapi.editor.colors EditorColorsManager]
    [com.intellij.openapi.fileEditor FileEditorManager]
@@ -201,6 +202,8 @@
                                                           (fn []
                                                             (when vfile
                                                               (.openFile (FileEditorManager/getInstance project) vfile true)))}))
+          "editor/openUrl" (when-let [url (:url data)]
+                             (BrowserUtil/browse ^String url))
           "editor/openGlobalConfig"
           (app-manager/invoke-later!
            {:invoke-fn
