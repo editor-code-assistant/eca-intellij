@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.17.2
+
+- open markdown links in browser.
+
 ## 0.17.1
 
 - Fix diffs crashing for new files.
