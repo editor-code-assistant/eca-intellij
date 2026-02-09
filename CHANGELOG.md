@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve usage UI.
+
 ## 0.18.0
 
 - Rename behavior -> agent matching server.
