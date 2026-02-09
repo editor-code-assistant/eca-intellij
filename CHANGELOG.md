@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.18.1
+
 - Improve usage UI.
 
 ## 0.18.0
