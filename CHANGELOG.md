@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix scroll on models selection
+
 ## 0.17.2
 
 - open markdown links in browser.
