@@ -154,7 +154,7 @@
           "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (:chatId data)
                                                                               :message (:prompt data)
                                                                               :model (:model data)
-                                                                              :behavior (:behavior data)
+                                                                              :agent (:agent data)
                                                                               :requestId (str (data :requestId))
                                                                               :contexts (:contexts data)}])]
                               (send-msg! project

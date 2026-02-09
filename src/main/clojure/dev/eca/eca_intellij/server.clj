@@ -90,8 +90,8 @@
 (defn ^:private on-initialized [result project]
   (db/update-in project [:session] (fn [_]
                                      {:models (:models result)
-                                      :chat-behaviors (:chat-behaviors result)
-                                      :chat-selected-behavior (:chat-default-behavior result)
+                                      :chat-agents (:chat-agents result)
+                                      :chat-selected-agent (:chat-default-agent result)
                                       :chat-selected-model (:chat-default-model result)
                                       :welcome-message (:chat-welcome-message result)})))
 

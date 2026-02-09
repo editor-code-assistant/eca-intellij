@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Rename behavior -> agent matching server.
+
 ## 0.17.3
 
 - Fix scroll on models selection
