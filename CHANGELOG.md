@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.18.0
+
 - Rename behavior -> agent matching server.
 
 ## 0.17.3
