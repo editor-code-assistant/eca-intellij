@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.17.3
+
 - Fix scroll on models selection
 
 ## 0.17.2
