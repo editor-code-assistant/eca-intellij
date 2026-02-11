@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.19.0
+
 - Add support for subagents.
 
 ## 0.18.1
