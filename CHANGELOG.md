@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add support for subagents.
+
 ## 0.18.1
 
 - Improve usage UI.
