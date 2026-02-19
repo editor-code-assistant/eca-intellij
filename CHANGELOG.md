@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.19.1
+
 - Fix for when no models are available, allowing login.
 
 ## 0.19.0
