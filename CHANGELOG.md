@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix for when no models are available, allowing login.
+
 ## 0.19.0
 
 - Add support for subagents.
