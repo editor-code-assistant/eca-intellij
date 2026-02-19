@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.19.2
+
 - Minor light theme improvements
 
 ## 0.19.1
