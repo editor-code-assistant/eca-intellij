@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.20.0
+
 - Support for model variants.
 
 ## 0.19.2
