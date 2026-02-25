@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support for model variants.
+
 ## 0.19.2
 
 - Minor light theme improvements

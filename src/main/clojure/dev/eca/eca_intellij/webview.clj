@@ -154,12 +154,15 @@
           "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (:chatId data)
                                                                               :message (:prompt data)
                                                                               :model (:model data)
+                                                                              :variant (:variant data)
                                                                               :agent (:agent data)
                                                                               :requestId (str (data :requestId))
                                                                               :contexts (:contexts data)}])]
                               (send-msg! project
                                          {:type "chat/newChat"
                                           :data {:id (:chat-id result)}}))
+          "chat/selectedModelChanged" (api/notify! client [:chat/selectedModelChanged {:model (:model data)
+                                                                                       :variant (:variant data)}])
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
                                 (send-msg! project {:type "chat/queryContext"
                                                     :data result}))
