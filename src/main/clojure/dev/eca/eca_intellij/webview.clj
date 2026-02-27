@@ -169,6 +169,9 @@
           "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
                                  (send-msg! project {:type "chat/queryCommands"
                                                      :data result}))
+          "chat/queryFiles" (let [result @(api/request! client [:chat/queryFiles data])]
+                              (send-msg! project {:type "chat/queryFiles"
+                                                  :data result}))
           "editor/refresh"
           (.refreshFiles (LocalFileSystem/getInstance) [(.findFileByIoFile (LocalFileSystem/getInstance) (io/file (.getBasePath project)))] true true nil)
           "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])

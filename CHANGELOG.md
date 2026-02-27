@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Support editor/getDiagnostics from server.
+- Support querying files via # in prompt.
+
 ## 0.20.0
 
 - Support for model variants.

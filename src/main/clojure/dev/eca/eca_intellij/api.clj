@@ -10,7 +10,17 @@
    [lsp4clj.lsp.responses :as lsp.responses]
    [lsp4clj.protocols.endpoint :as protocols.endpoint])
   (:import
-   [com.intellij.openapi.project Project]))
+   [com.intellij.codeInsight.daemon.impl DaemonCodeAnalyzerEx HighlightInfo]
+   [com.intellij.lang.annotation HighlightSeverity]
+   [com.intellij.openapi.application ApplicationManager]
+   [com.intellij.openapi.editor Document]
+   [com.intellij.openapi.fileEditor FileDocumentManager FileEditorManager]
+   [com.intellij.openapi.project Project]
+   [com.intellij.openapi.util Computable]
+   [com.intellij.openapi.vfs LocalFileSystem VirtualFile]
+   [com.intellij.util Processor]
+   [java.io File]
+   [java.net URI]))
 
 (set! *warn-on-reflection* true)
 
@@ -18,6 +28,68 @@
 (defmulti chat-content-received (constantly :default))
 (defmulti chat-cleared (constantly :default))
 (defmulti tool-server-updated (constantly :default))
+
+(defn ^:private severity->string [^HighlightSeverity severity]
+  (condp = severity
+    HighlightSeverity/ERROR "error"
+    HighlightSeverity/WARNING "warning"
+    HighlightSeverity/WEAK_WARNING "warning"
+    HighlightSeverity/INFORMATION "hint"
+    "info"))
+
+(defn ^:private highlight->diagnostic [^HighlightInfo info ^String uri ^Document document]
+  (let [start-offset (.getStartOffset info)
+        end-offset (.getEndOffset info)
+        start-line (.getLineNumber document start-offset)
+        start-char (- start-offset (.getLineStartOffset document start-line))
+        end-line (.getLineNumber document end-offset)
+        end-char (- end-offset (.getLineStartOffset document end-line))]
+    {:uri uri
+     :severity (severity->string (.getSeverity info))
+     :code nil
+     :range {:start {:line start-line :character start-char}
+             :end {:line end-line :character end-char}}
+     :source nil
+     :message (or (.getDescription info) "")}))
+
+(defn ^:private get-diagnostics-for-document [^Project project ^Document document ^String uri]
+  (let [diagnostics (java.util.ArrayList.)]
+    (DaemonCodeAnalyzerEx/processHighlights
+     document project nil 0 (.getTextLength document)
+     (reify Processor
+       (process [_ info]
+         (let [^HighlightInfo hi info]
+           (when (and (>= (.compareTo (.getSeverity hi) HighlightSeverity/WARNING) 0)
+                      (.getDescription hi))
+             (.add diagnostics (highlight->diagnostic hi uri document))))
+         true)))
+    (vec diagnostics)))
+
+(defn ^:private get-editor-diagnostics [^Project project params]
+  (try
+    (.runReadAction (ApplicationManager/getApplication)
+      (reify Computable
+        (compute [_]
+          (if-let [uri (:uri params)]
+            (let [path (.getPath (URI. uri))
+                  vfile (.findFileByPath (LocalFileSystem/getInstance) path)
+                  document (when vfile
+                             (.getDocument (FileDocumentManager/getInstance) vfile))]
+              (if document
+                {:diagnostics (get-diagnostics-for-document project document uri)}
+                {:diagnostics []}))
+            (let [open-files (.getOpenFiles (FileEditorManager/getInstance project))
+                  all-diags (into []
+                              (mapcat (fn [^VirtualFile vfile]
+                                        (when-let [document (.getDocument (FileDocumentManager/getInstance) vfile)]
+                                          (get-diagnostics-for-document
+                                           project document
+                                           (str (.toURI (File. (.getPath vfile))))))))
+                              open-files)]
+              {:diagnostics all-diags})))))
+    (catch Exception e
+      (logger/warn "Error getting editor diagnostics:" (.getMessage e))
+      {:diagnostics []})))
 
 (defn ^:private receive-message
   [client context message]
@@ -102,9 +174,10 @@
                            resp
                            (:result resp))))
       (protocols.endpoint/log this :error "received response for unmatched request:" resp)))
-  (receive-request [this _context {:keys [id method _params] :as req}]
+  (receive-request [this context {:keys [id method] :as req}]
     (protocols.endpoint/log this :messages "received request:" req)
     (when-let [response-body (case method
+                               "editor/getDiagnostics" (get-editor-diagnostics (:project context) (:params req))
                                (logger/warn "Unknown LSP request method" method))]
       (let [resp (lsp.responses/response id response-body)]
         (protocols.endpoint/log this :messages "sending response:" resp)

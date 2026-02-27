@@ -20,7 +20,8 @@
 (set! *warn-on-reflection* true)
 
 (def ^:private client-capabilities
-  {:chat {}})
+  {:code-assistant {:chat true
+                    :editor {:diagnostics true}}})
 
 (def ^:private artifacts
   {:linux {:amd64 "eca-native-static-linux-amd64.zip"
