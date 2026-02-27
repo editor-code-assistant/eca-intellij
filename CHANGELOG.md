@@ -6,6 +6,10 @@
 - Support querying files via # in prompt.
 - Support prompt queueing.
 - Support export chat to markdown file.
+- Support prompt history
+- Support image copy paste
+- Support chat rename
+- Support chat timeline navigation.
 
 ## 0.20.0
 

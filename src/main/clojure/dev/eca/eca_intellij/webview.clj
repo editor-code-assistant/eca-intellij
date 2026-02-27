@@ -22,7 +22,8 @@
    [com.intellij.openapi.vfs LocalFileSystem VirtualFileWrapper]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
-   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]))
+   [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
+   [java.util Base64]))
 
 (set! *warn-on-reflection* true)
 
@@ -241,6 +242,26 @@
                                                    (or (.getMessage e) (str e)))
                                               "ECA Global Config")))))})
           "editor/openServerLogs" (server-logs/open-server-logs! project)
+          "editor/saveClipboardImage"
+          (let [{:keys [base64Data mimeType requestId]} data
+                ext-map {"image/png" "png"
+                         "image/jpeg" "jpg"
+                         "image/jpg" "jpg"
+                         "image/gif" "gif"
+                         "image/webp" "webp"
+                         "image/svg+xml" "svg"}
+                ext (get ext-map mimeType "png")
+                tmp-file (io/file (System/getProperty "java.io.tmpdir")
+                                  (str "eca-screenshot-" (System/currentTimeMillis) "." ext))]
+            (try
+              (let [bytes (.decode (Base64/getDecoder) ^String base64Data)]
+                (with-open [out (io/output-stream tmp-file)]
+                  (.write out ^bytes bytes))
+                (send-msg! project {:type "editor/saveClipboardImage"
+                                    :data {:requestId requestId
+                                           :path (.getAbsolutePath tmp-file)}}))
+              (catch Exception e
+                (logger/warn "Failed to save clipboard image:" (.getMessage e)))))
           "editor/saveFile"
           (app-manager/invoke-later!
            {:invoke-fn
