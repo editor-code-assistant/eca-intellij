@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.21.0
+
 - Support editor/getDiagnostics from server.
 - Support querying files via # in prompt.
 - Support prompt queueing.
