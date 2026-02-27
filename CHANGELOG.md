@@ -4,6 +4,8 @@
 
 - Support editor/getDiagnostics from server.
 - Support querying files via # in prompt.
+- Support prompt queueing.
+- Support export chat to markdown file.
 
 ## 0.20.0
 

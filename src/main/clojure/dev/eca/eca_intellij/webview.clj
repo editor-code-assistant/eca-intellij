@@ -18,7 +18,8 @@
    [com.intellij.openapi.project Project]
    [com.intellij.openapi.ui Messages]
    [com.intellij.openapi.util.io FileUtil]
-   [com.intellij.openapi.vfs LocalFileSystem]
+   [com.intellij.openapi.fileChooser FileChooserFactory FileSaverDescriptor]
+   [com.intellij.openapi.vfs LocalFileSystem VirtualFileWrapper]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]))
@@ -163,6 +164,7 @@
                                           :data {:id (:chat-id result)}}))
           "chat/selectedModelChanged" (api/notify! client [:chat/selectedModelChanged {:model (:model data)
                                                                                        :variant (:variant data)}])
+          "chat/selectedAgentChanged" (api/notify! client [:chat/selectedAgentChanged {:agent (:agent data)}])
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
                                 (send-msg! project {:type "chat/queryContext"
                                                     :data result}))
@@ -239,6 +241,17 @@
                                                    (or (.getMessage e) (str e)))
                                               "ECA Global Config")))))})
           "editor/openServerLogs" (server-logs/open-server-logs! project)
+          "editor/saveFile"
+          (app-manager/invoke-later!
+           {:invoke-fn
+            (fn []
+              (let [default-name (or (:defaultName data) "chat-export.md")
+                    descriptor (FileSaverDescriptor. "Export Chat to Markdown" "Choose location to save the chat export" ^"[Ljava.lang.String;" (into-array String ["md"]))
+                    dialog (.createSaveFileDialog (FileChooserFactory/getInstance) descriptor project)
+                    base-dir (.findFileByIoFile (LocalFileSystem/getInstance) (io/file (.getBasePath project)))
+                    wrapper ^VirtualFileWrapper (.save dialog base-dir ^String default-name)]
+                (when wrapper
+                  (spit (.getFile wrapper) (:content data) :encoding "UTF-8"))))})
           (logger/warn "Unkown webview message type:" type)))))
   nil)
 
