@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support eca__task UI.
+
 ## 0.21.0
 
 - Support editor/getDiagnostics from server.
