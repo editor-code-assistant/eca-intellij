@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.22.0
+
 - Support eca__task UI.
 
 ## 0.21.0
