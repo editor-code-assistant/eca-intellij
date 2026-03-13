@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support connect/logout mcp servers.
+
 ## 0.22.0
 
 - Support eca__task UI.
