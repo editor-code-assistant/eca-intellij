@@ -194,6 +194,8 @@
                               @(api/request! client [:chat/rollback (assoc data :includes includes)])))
           "mcp/startServer" (api/notify! client [:mcp/startServer data])
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
+          "mcp/connectServer" (api/notify! client [:mcp/connectServer data])
+          "mcp/logoutServer" (api/notify! client [:mcp/logoutServer data])
           "editor/readInput" (app-manager/invoke-later!
                               {:invoke-fn (fn []
                                             (let [user-input (Messages/showInputDialog
