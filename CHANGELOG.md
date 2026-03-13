@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.23.0
+
 - Support connect/logout mcp servers.
 
 ## 0.22.0
