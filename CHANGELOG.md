@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support update mcps via mcp page.
+
 ## 0.23.0
 
 - Support connect/logout mcp servers.

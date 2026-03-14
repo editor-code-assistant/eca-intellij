@@ -196,6 +196,11 @@
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
           "mcp/connectServer" (api/notify! client [:mcp/connectServer data])
           "mcp/logoutServer" (api/notify! client [:mcp/logoutServer data])
+          "mcp/updateServer" (future
+                               (let [result @(api/request! client [:mcp/updateServer data])]
+                                 (send-msg! project {:type "mcp/updateServer"
+                                                     :data (merge {:requestId (:requestId data)}
+                                                                  result)})))
           "editor/readInput" (app-manager/invoke-later!
                               {:invoke-fn (fn []
                                             (let [user-input (Messages/showInputDialog
