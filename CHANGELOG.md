@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.0
+
 - UI Overhaul
 
 ## 0.24.0
