@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- UI Overhaul
+
 ## 0.24.0
 
 - Support update mcps via mcp page.
