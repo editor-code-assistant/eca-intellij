@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Improve rendering of user messages and codeblocks.
+
 ## 0.25.1
 
 - Fix UI for light themes.
