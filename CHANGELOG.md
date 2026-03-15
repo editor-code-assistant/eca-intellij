@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.1
+
 - Fix UI for light themes.
 
 ## 0.25.0
