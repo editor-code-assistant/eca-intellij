@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix UI for light themes.
+
 ## 0.25.0
 
 - UI Overhaul
