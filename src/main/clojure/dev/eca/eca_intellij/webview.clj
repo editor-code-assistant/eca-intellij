@@ -157,6 +157,7 @@
                                                                               :message (:prompt data)
                                                                               :model (:model data)
                                                                               :variant (:variant data)
+                                                                              :trust (:trust data)
                                                                               :agent (:agent data)
                                                                               :requestId (str (data :requestId))
                                                                               :contexts (:contexts data)}])]
