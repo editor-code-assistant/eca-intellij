@@ -27,6 +27,8 @@
 (defmulti config-updated (constantly :default))
 (defmulti chat-content-received (constantly :default))
 (defmulti chat-cleared (constantly :default))
+(defmulti chat-deleted (constantly :default))
+(defmulti chat-status-changed (constantly :default))
 (defmulti tool-server-updated (constantly :default))
 
 (defn ^:private severity->string [^HighlightSeverity severity]
@@ -188,6 +190,8 @@
       "config/updated" (config-updated context params)
       "chat/contentReceived" (chat-content-received context params)
       "chat/cleared" (chat-cleared context params)
+      "chat/deleted" (chat-deleted context params)
+      "chat/statusChanged" (chat-status-changed context params)
       "tool/serverUpdated" (tool-server-updated context params)
 
       (logger/warn "Unknown LSP notification method" method))))

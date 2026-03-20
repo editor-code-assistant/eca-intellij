@@ -299,6 +299,16 @@
   (send-msg! project {:type "chat/cleared"
                       :data params}))
 
+(defmethod api/chat-deleted :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "chat/deleted"
+                      :data (:chatId params)}))
+
+(defmethod api/chat-status-changed :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "chat/statusChanged"
+                      :data params}))
+
 (defmethod api/tool-server-updated  :default
   [{:keys [project]} params]
   (db/assoc-in project [:session :mcp-servers (:name params)] params)

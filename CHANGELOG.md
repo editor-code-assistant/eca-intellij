@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Sync chat deletions
+
 ## 0.25.2
 
 - Improve rendering of user messages and codeblocks.
