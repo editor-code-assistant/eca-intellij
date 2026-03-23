@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.4
+
 ## 0.25.3
 
 - Sync chat deletions
