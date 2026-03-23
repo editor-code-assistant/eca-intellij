@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.25.5
+
+- Fix mobile approval UI showing in editor panels.
+
 ## 0.25.4
 
 ## 0.25.3
