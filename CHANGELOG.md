@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 0.25.7
+
+- Add MCP server disable/enable from details page.
+
+## 0.25.6
+
 ## 0.25.5
 
 - Fix mobile approval UI showing in editor panels.
