@@ -304,6 +304,11 @@
   (send-msg! project {:type "chat/deleted"
                       :data (:chatId params)}))
 
+(defmethod api/chat-opened :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "chat/opened"
+                      :data params}))
+
 (defmethod api/chat-status-changed :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/statusChanged"

@@ -28,6 +28,7 @@
 (defmulti chat-content-received (constantly :default))
 (defmulti chat-cleared (constantly :default))
 (defmulti chat-deleted (constantly :default))
+(defmulti chat-opened (constantly :default))
 (defmulti chat-status-changed (constantly :default))
 (defmulti tool-server-updated (constantly :default))
 
@@ -191,6 +192,7 @@
       "chat/contentReceived" (chat-content-received context params)
       "chat/cleared" (chat-cleared context params)
       "chat/deleted" (chat-deleted context params)
+      "chat/opened" (chat-opened context params)
       "chat/statusChanged" (chat-status-changed context params)
       "tool/serverUpdated" (tool-server-updated context params)
 
