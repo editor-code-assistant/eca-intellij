@@ -197,6 +197,8 @@
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
           "mcp/connectServer" (api/notify! client [:mcp/connectServer data])
           "mcp/logoutServer" (api/notify! client [:mcp/logoutServer data])
+          "mcp/disableServer" (api/notify! client [:mcp/disableServer data])
+          "mcp/enableServer" (api/notify! client [:mcp/enableServer data])
           "mcp/updateServer" (future
                                (let [result @(api/request! client [:mcp/updateServer data])]
                                  (send-msg! project {:type "mcp/updateServer"
