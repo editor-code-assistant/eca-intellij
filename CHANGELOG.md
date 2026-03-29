@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.25.8
+
+- Add Settings page with MCPs, Providers, and Global Config tabs.
+
 ## 0.25.7
 
 - Add MCP server disable/enable from details page.
