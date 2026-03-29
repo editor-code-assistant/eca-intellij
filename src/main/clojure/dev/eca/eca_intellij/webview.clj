@@ -204,6 +204,26 @@
                                  (send-msg! project {:type "mcp/updateServer"
                                                      :data (merge {:requestId (:requestId data)}
                                                                   result)})))
+          "providers/list" (future
+                             (let [result @(api/request! client [:providers/list {}])]
+                               (send-msg! project {:type "providers/list"
+                                                   :data (merge {:requestId (:requestId data)}
+                                                                result)})))
+          "providers/login" (future
+                              (let [result @(api/request! client [:providers/login data])]
+                                (send-msg! project {:type "providers/login"
+                                                    :data (merge {:requestId (:requestId data)}
+                                                                 result)})))
+          "providers/loginInput" (future
+                                   (let [result @(api/request! client [:providers/loginInput data])]
+                                     (send-msg! project {:type "providers/loginInput"
+                                                         :data (merge {:requestId (:requestId data)}
+                                                                      result)})))
+          "providers/logout" (future
+                               (let [result @(api/request! client [:providers/logout data])]
+                                 (send-msg! project {:type "providers/logout"
+                                                     :data (merge {:requestId (:requestId data)}
+                                                                  result)})))
           "editor/readInput" (app-manager/invoke-later!
                               {:invoke-fn (fn []
                                             (let [user-input (Messages/showInputDialog
@@ -321,3 +341,8 @@
   (db/assoc-in project [:session :mcp-servers (:name params)] params)
   (send-msg! project {:type "tool/serversUpdated"
                       :data (vals (db/get-in project [:session :mcp-servers]))}))
+
+(defmethod api/providers-updated :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "providers/updated"
+                      :data params}))
