@@ -4,6 +4,8 @@
 
 ## 0.25.8
 
+## 0.25.8
+
 - Add Settings page with MCPs, Providers, and Global Config tabs.
 
 ## 0.25.7
