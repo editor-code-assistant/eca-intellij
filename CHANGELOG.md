@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add steer prompt support for redirecting running prompts at the next LLM turn boundary.
+
 ## 0.25.9
 
 ## 0.25.8
