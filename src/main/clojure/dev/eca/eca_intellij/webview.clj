@@ -181,6 +181,7 @@
           "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
           "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
+          "chat/promptSteer" (api/notify! client [:chat/promptSteer data])
           "chat/delete" @(api/request! client [:chat/delete data])
           "chat/rollback" (let [option @(editor/quick-pick [{:id :rollback-messages-and-tools :label "Rollback messages and changes done by tool calls"}
                                                             {:id :rollback-only-messages :label "Rollback only messages"}
