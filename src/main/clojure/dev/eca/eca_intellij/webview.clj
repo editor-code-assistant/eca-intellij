@@ -183,6 +183,19 @@
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
           "chat/promptSteer" (api/notify! client [:chat/promptSteer data])
           "chat/delete" @(api/request! client [:chat/delete data])
+          "chat/addFlag" (app-manager/invoke-later!
+                          {:invoke-fn (fn []
+                                        (let [user-input (Messages/showInputDialog
+                                                          project
+                                                          "Enter flag name"
+                                                          "Add Flag"
+                                                          (Messages/getQuestionIcon))]
+                                          (when user-input
+                                            @(api/request! client [:chat/addFlag {:chatId (:chatId data)
+                                                                                  :contentId (:contentId data)
+                                                                                  :text user-input}]))))})
+          "chat/removeFlag" @(api/request! client [:chat/removeFlag data])
+          "chat/fork" @(api/request! client [:chat/fork data])
           "chat/rollback" (let [option @(editor/quick-pick [{:id :rollback-messages-and-tools :label "Rollback messages and changes done by tool calls"}
                                                             {:id :rollback-only-messages :label "Rollback only messages"}
                                                             {:id :rollback-only-tools :label "Rollback only changes done by tool calls"}]
