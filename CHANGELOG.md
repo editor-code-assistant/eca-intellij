@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.11
+
 - Add chat flag support with fork and remove actions.
 
 ## 0.25.10
