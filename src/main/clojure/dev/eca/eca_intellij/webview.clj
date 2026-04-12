@@ -285,6 +285,21 @@
                                               (str "Failed to prepare global config: "
                                                    (or (.getMessage e) (str e)))
                                               "ECA Global Config")))))})
+          "jobs/list" (future
+                       (let [result @(api/request! client [:jobs/list {}])]
+                         (send-msg! project {:type "jobs/list"
+                                             :data (merge {:requestId (:requestId data)}
+                                                          result)})))
+          "jobs/readOutput" (future
+                              (let [result @(api/request! client [:jobs/readOutput {:job-id (:jobId data)}])]
+                                (send-msg! project {:type "jobs/readOutput"
+                                                    :data (merge {:requestId (:requestId data)}
+                                                                 result)})))
+          "jobs/kill" (future
+                        (let [result @(api/request! client [:jobs/kill {:job-id (:jobId data)}])]
+                          (send-msg! project {:type "jobs/kill"
+                                              :data (merge {:requestId (:requestId data)}
+                                                           result)})))
           "editor/openServerLogs" (server-logs/open-server-logs! project)
           "editor/saveClipboardImage"
           (let [{:keys [base64Data mimeType requestId]} data
@@ -359,4 +374,9 @@
 (defmethod api/providers-updated :default
   [{:keys [project]} params]
   (send-msg! project {:type "providers/updated"
+                      :data params}))
+
+(defmethod api/jobs-updated :default
+  [{:keys [project]} params]
+  (send-msg! project {:type "jobs/updated"
                       :data params}))

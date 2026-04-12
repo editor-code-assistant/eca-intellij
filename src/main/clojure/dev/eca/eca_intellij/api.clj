@@ -32,6 +32,7 @@
 (defmulti chat-status-changed (constantly :default))
 (defmulti tool-server-updated (constantly :default))
 (defmulti providers-updated (constantly :default))
+(defmulti jobs-updated (constantly :default))
 
 (defn ^:private severity->string [^HighlightSeverity severity]
   (condp = severity
@@ -197,6 +198,7 @@
       "chat/statusChanged" (chat-status-changed context params)
       "tool/serverUpdated" (tool-server-updated context params)
       "providers/updated" (providers-updated context params)
+      "jobs/updated" (jobs-updated context params)
 
       (logger/warn "Unknown LSP notification method" method))))
 
