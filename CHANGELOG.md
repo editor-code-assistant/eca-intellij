@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add chat flag support with fork and remove actions.
+
 ## 0.25.10
 
 - Add steer prompt support for redirecting running prompts at the next LLM turn boundary.
