@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.12
+
 ## patch
 
 - Add background jobs support (jobs/updated notification, jobs panel in settings, inline status icons, output viewer).
