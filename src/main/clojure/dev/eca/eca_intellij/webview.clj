@@ -182,6 +182,9 @@
           "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
           "chat/promptSteer" (api/notify! client [:chat/promptSteer data])
+          "chat/update" @(api/request! client [:chat/update {:chatId (:chatId data)
+                                                                :title (:title data)
+                                                                :trust (:trust data)}])
           "chat/delete" @(api/request! client [:chat/delete data])
           "chat/addFlag" (app-manager/invoke-later!
                           {:invoke-fn (fn []
