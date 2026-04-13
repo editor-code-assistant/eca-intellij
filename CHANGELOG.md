@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.14
+
 - Trust mode can now be toggled via chat/update and applies immediately to the next tool call without requiring a new prompt.
 
 ## 0.25.13
