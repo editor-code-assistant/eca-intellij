@@ -33,6 +33,7 @@
 (defmulti tool-server-updated (constantly :default))
 (defmulti providers-updated (constantly :default))
 (defmulti jobs-updated (constantly :default))
+(defmulti chat-ask-question (constantly :default))
 
 (defn ^:private severity->string [^HighlightSeverity severity]
   (condp = severity
@@ -183,6 +184,7 @@
     (protocols.endpoint/log this :messages "received request:" req)
     (when-let [response-body (case method
                                "editor/getDiagnostics" (get-editor-diagnostics (:project context) (:params req))
+                               "chat/askQuestion" (chat-ask-question context (:params req))
                                (logger/warn "Unknown LSP request method" method))]
       (let [resp (lsp.responses/response id response-body)]
         (protocols.endpoint/log this :messages "sending response:" resp)

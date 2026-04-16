@@ -27,6 +27,8 @@
 
 (set! *warn-on-reflection* true)
 
+(def ^:private pending-questions (atom {}))
+
 (defn ^:private hex [jb-color]
   (str "#" (ColorUtil/toHex jb-color)))
 
@@ -304,6 +306,10 @@
                                               :data (merge {:requestId (:requestId data)}
                                                            result)})))
           "editor/openServerLogs" (server-logs/open-server-logs! project)
+          "chat/answerQuestion" (let [request-id (:requestId data)]
+                                  (when-let [p (get @pending-questions request-id)]
+                                    (deliver p {:answer (:answer data)})
+                                    (swap! pending-questions dissoc request-id)))
           "editor/saveClipboardImage"
           (let [{:keys [base64Data mimeType requestId]} data
                 ext-map {"image/png" "png"
@@ -383,3 +389,14 @@
   [{:keys [project]} params]
   (send-msg! project {:type "jobs/updated"
                       :data params}))
+
+(defmethod api/chat-ask-question :default
+  [{:keys [project]} params]
+  (let [request-id (str (java.util.UUID/randomUUID))
+        p (promise)]
+    (swap! pending-questions assoc request-id p)
+    (send-msg! project {:type "chat/askQuestion"
+                        :data (assoc params :requestId request-id)})
+    (let [result (deref p 300000 {:answer nil :cancelled true})]
+      (swap! pending-questions dissoc request-id)
+      result)))

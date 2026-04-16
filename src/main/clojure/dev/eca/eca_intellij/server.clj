@@ -21,7 +21,8 @@
 
 (def ^:private client-capabilities
   {:code-assistant {:chat true
-                    :editor {:diagnostics true}}})
+                    :editor {:diagnostics true}
+                    :chat-capabilities {:ask-question true}}})
 
 (def ^:private artifacts
   {:linux {:amd64 "eca-native-static-linux-amd64.zip"
