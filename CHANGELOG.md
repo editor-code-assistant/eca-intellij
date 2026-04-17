@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.25.16
+
 ## 0.25.15
 
 - Add chat/askQuestion support for inline questions.
