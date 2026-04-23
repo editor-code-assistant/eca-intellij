@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.0
+
 - Add Settings → Global Config tab with inline JSONC editor (validates + writes atomically).
 - Add Settings → Logs tab streaming live server stderr and lifecycle events.
 - Settings tab-bar now scrolls horizontally inside itself instead of widening the whole webview on narrow tool-window widths.
