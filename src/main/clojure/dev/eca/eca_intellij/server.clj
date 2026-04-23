@@ -8,6 +8,7 @@
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.config :as config]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.log-store :as log-store]
    [dev.eca.eca-intellij.notification :as notification])
   (:import
    [com.github.ericdallo.clj4intellij ClojureClassLoader]
@@ -123,6 +124,9 @@
         env (env)
         command (concat [server-path "server"] server-args)
         _ (logger/info "Spawning server:" (string/join " " command) "with env" env)
+        _ (log-store/append! project {:source :server
+                                      :text (str "Spawning ECA server: "
+                                                 (string/join " " command))})
         process (p/process command
                            {:dir (.getBasePath project)
                             :env env})
@@ -133,7 +137,12 @@
       (try
         (with-open [r (io/reader (:err process))]
           (doseq [line (line-seq r)]
+            ;; Dual sink: the legacy `:server-stderr-string` surface
+            ;; powers the existing "ECA: Show server logs" editor
+            ;; buffer (server_logs.clj); the new log-store feeds the
+            ;; webview's Settings → Logs tab with structured entries.
             (db/update-in project [:server-stderr-string] #(str % line "\n"))
+            (log-store/append! project {:source :server :text line})
             (doseq [on-stderr-log-updated-fn (vals (db/get-in project [:on-stderr-log-updated-fns]))]
               (on-stderr-log-updated-fn))
             (logger/info "stderr:" line)))

@@ -8,7 +8,9 @@
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.editor :as editor]
+   [dev.eca.eca-intellij.editor-actions :as editor-actions]
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
+   [dev.eca.eca-intellij.log-store :as log-store]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
    [com.intellij.ide BrowserUtil]
@@ -152,7 +154,16 @@
         ;; send current opened editor if any
         (when-let [editor (.getSelectedTextEditor (FileEditorManager/getInstance project))]
           (on-focus-changed editor nil))
-        (db/assoc-in project [:on-focus-changed-fns :webview] #'on-focus-changed))
+        (db/assoc-in project [:on-focus-changed-fns :webview] #'on-focus-changed)
+        ;; Hook the log-store into the webview. Every new entry is
+        ;; forwarded as `logs/appended` so the Settings → Logs tab
+        ;; renders them live. `subscribe!` replaces the previous
+        ;; listener under `:webview`, which is what we want on
+        ;; webview/ready re-delivery (e.g. tool-window re-open).
+        (log-store/subscribe! project :webview
+                              (fn [entry]
+                                (send-msg! project {:type "logs/appended"
+                                                    :data entry}))))
       (when-let [client (api/connected-client project)]
         (case type
           "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (:chatId data)
@@ -263,33 +274,61 @@
           "editor/openUrl" (when-let [url (:url data)]
                              (BrowserUtil/browse ^String url))
           "editor/openGlobalConfig"
+          ;; Delegates to editor-actions so the same resolution rules
+          ;; (ECA_CONFIG_PATH > XDG_CONFIG_HOME > platform default) are
+          ;; shared with editor/readGlobalConfig / editor/writeGlobalConfig
+          ;; below — and with eca-vscode + eca-desktop.
           (app-manager/invoke-later!
            {:invoke-fn
             (fn []
-              (let [home (System/getProperty "user.home")
-                    config-home (or (System/getenv "XDG_CONFIG_HOME")
-                                    (.getAbsolutePath (io/file home ".config")))
-                    config-file (io/file config-home "eca" "config.json")]
-                (try
-                  (when-let [config-dir (.getParentFile config-file)]
-                    (when-not (.exists config-dir)
-                      (.mkdirs config-dir)))
-                  (when-not (.exists config-file)
-                    (spit config-file "{}"))
-                  (app-manager/invoke-later!
-                   {:invoke-fn (fn []
-                                 (if-let [vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance)
-                                                                           (FileUtil/toSystemIndependentName
-                                                                            (.getAbsolutePath config-file)))]
-                                   (.openFile (FileEditorManager/getInstance project) vfile true)
-                                   (Messages/showErrorDialog project
-                                                             "Failed to open global config file."
-                                                             "ECA Global Config")))})
-                  (catch Exception e
+              (try
+                (let [config-file (editor-actions/ensure-global-config-exists!)]
+                  (if-let [vfile (.refreshAndFindFileByPath (LocalFileSystem/getInstance)
+                                                            (FileUtil/toSystemIndependentName
+                                                             (.getAbsolutePath config-file)))]
+                    (.openFile (FileEditorManager/getInstance project) vfile true)
                     (Messages/showErrorDialog project
-                                              (str "Failed to prepare global config: "
-                                                   (or (.getMessage e) (str e)))
-                                              "ECA Global Config")))))})
+                                              "Failed to open global config file."
+                                              "ECA Global Config")))
+                (catch Exception e
+                  (Messages/showErrorDialog project
+                                            (str "Failed to prepare global config: "
+                                                 (or (.getMessage e) (str e)))
+                                            "ECA Global Config"))))})
+
+          "editor/readGlobalConfig"
+          (let [result (editor-actions/read-global-config)]
+            (send-msg! project {:type "editor/readGlobalConfig"
+                                :data (assoc result :request-id (:requestId data))}))
+
+          "editor/writeGlobalConfig"
+          (let [result (editor-actions/write-global-config
+                        {:contents (or (:contents data) "")})]
+            (send-msg! project {:type "editor/writeGlobalConfig"
+                                :data (assoc result :request-id (:requestId data))}))
+
+          "logs/snapshot"
+          ;; Fire-and-forget response. `camel-cased-map` will convert
+          ;; keyword keys (:ts :seq :source :level :text :session-id)
+          ;; to the `ts seq source level text sessionId` shape the
+          ;; webview expects.
+          (send-msg! project {:type "logs/snapshot"
+                              :data (log-store/snapshot project)})
+
+          "logs/clear"
+          ;; Wipe only the in-memory ring buffer; the legacy
+          ;; `:server-stderr-string` surface that powers the 'ECA:
+          ;; Show server logs' editor buffer is intentionally
+          ;; preserved so bug reports still have full history.
+          (log-store/clear! project)
+
+          "logs/openFolder"
+          ;; The IntelliJ port does not maintain a separate on-disk
+          ;; log file — see log_store.clj for rationale. The natural
+          ;; equivalent of the desktop's "reveal log file" surface is
+          ;; the in-editor LightVirtualFile already provided by
+          ;; `editor/openServerLogs`, so we just reuse that flow here.
+          (server-logs/open-server-logs! project)
           "jobs/list" (future
                        (let [result @(api/request! client [:jobs/list {}])]
                          (send-msg! project {:type "jobs/list"
