@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix Windows server binary being saved without `.exe` extension, which prevented the auto-downloaded server from launching without a manual rename workaround.
+
 ## 0.26.0
 
 - Add Settings → Global Config tab with inline JSONC editor (validates + writes atomically).
