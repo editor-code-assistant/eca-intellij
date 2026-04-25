@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.1
+
 - Fix Windows server binary being saved without `.exe` extension, which prevented the auto-downloaded server from launching without a manual rename workaround.
 - Sync the chat trust indicator from the server on chat resume by bumping `eca-webview` to honor `selectTrust` on `config/updated` (eca #426).
 
