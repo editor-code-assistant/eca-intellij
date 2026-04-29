@@ -4,6 +4,8 @@
 
 - Hide the JCEF webview "Open DevTools" right-click entry in production builds (now gated by `config/dev?`); the toolbar DevTools button remains dev-only as before.
 - Fix broken tool-window `icon` reference in `plugin.xml` that pointed to a non-existent class; now points to `dev.eca.eca_intellij.Icons.ECA_LIGHT`.
+- Inject missing IntelliJ theme tokens (tooltip, accent, success/warning/error, confirm-action, toggle, context, diff) so the chat UI follows the IDE's light theme. Closes #14.
+- Bump `eca-webview`: chat sub-header buttons now show hover tooltips in JCEF (native HTML `title=` is suppressed by the embedded browser); `<ToolTip>` popovers (MCPs, MCP-settings tool descriptions, usage details, etc.) now follow the IDE theme on light themes; trust toggle uses flame for ON and shield-with-check for OFF to match `eca-emacs`; pulls in upstream iOS/mobile UX improvements.
 
 ## 0.26.1
 
