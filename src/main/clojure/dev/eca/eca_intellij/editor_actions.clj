@@ -28,12 +28,11 @@
      1. `ECA_CONFIG_PATH` env var (absolute path) — honored as-is.
      2. `$XDG_CONFIG_HOME/eca/config.json` when the var is set.
      3. Platform default:
-        - macOS  : `~/Library/Application Support/eca/config.json`
         - Windows: `%APPDATA%\\eca\\config.json` (falls back to
           `~/.config/eca/config.json` when APPDATA is absent — which
           realistically never happens, but the fallback matches the
           other clients verbatim).
-        - Other  : `~/.config/eca/config.json`
+        - Others (macOS, Linux): `~/.config/eca/config.json`
 
    Does not touch the filesystem. Creation is the caller's
    responsibility (see `ensure-global-config-exists!`)."
@@ -48,9 +47,6 @@
 
       (and xdg (pos? (count (clojure.string/trim xdg))))
       (io/file xdg "eca" "config.json")
-
-      (clojure.string/includes? os-name "mac")
-      (io/file home "Library" "Application Support" "eca" "config.json")
 
       (clojure.string/includes? os-name "win")
       (let [appdata (System/getenv "APPDATA")]
