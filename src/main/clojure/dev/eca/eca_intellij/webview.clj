@@ -34,6 +34,10 @@
 (defn ^:private hex [jb-color]
   (str "#" (ColorUtil/toHex jb-color)))
 
+(defn ^:private rgba ^String [^java.awt.Color c alpha]
+  (format "rgba(%d, %d, %d, %.2f)"
+          (.getRed c) (.getGreen c) (.getBlue c) (double alpha)))
+
 (defn ^:private theme-css-map []
   (let [global-scheme (.getGlobalScheme (EditorColorsManager/getInstance))]
     ;; Most come from https://github.com/JetBrains/intellij-community/blob/master/platform/platform-resources/src/themes/metadata/IntelliJPlatform.themeMetadata.json
@@ -64,27 +68,35 @@
      "button-secondary-hover-bg" (hex (JBColor/namedColor "Button.default.focusColor"))
      "button-secondary-active-bg" (hex (JBColor/namedColor "Button.default.startBackground"))
 
-     ;; TODO finish colors map with JBColor
-     ;; "success-fg"
-     ;; "warning-fg"
-     ;; "error-fg"
-     ;; "warning-message-fg"
-     ;; "confirm-action-bg"
-     ;; "confirm-action-fg"
-     ;; "diff-unchanged-bg"
-     ;; "diff-insert-bg"
-     ;; "delete-bg"
-     ;; "tooltip-bg"
-     ;; "tooltip-fg"
-     ;; "toggle-slider-bg"
-     ;; "toggle-icon-bg"
-     ;; "toggle-bg"
-     ;; "context-file-fg"
-     ;; "context-directory-fg"
-     ;; "context-web-fg"
-     ;; "context-repo-map-fg"
-     ;; "context-mcp-resource-fg"
-     }))
+     "tooltip-bg" (hex (JBColor/namedColor "ToolTip.background"))
+     "tooltip-fg" (hex (JBColor/namedColor "ToolTip.foreground"))
+
+     "accent-fg" (hex (JBColor/namedColor "Hyperlink.linkColor"))
+
+     "success-fg" (hex JBColor/GREEN)
+     "warning-fg" (hex (JBColor/namedColor "Component.warningFocusColor"))
+     "approval-fg" (hex JBColor/ORANGE)
+     "error-fg" (hex (JBColor/namedColor "Component.errorFocusColor"))
+     "warning-message-fg" (hex (JBColor/namedColor "Component.warningFocusColor"))
+
+     "confirm-action-bg" (hex JBColor/GREEN)
+     "confirm-action-fg" (hex (JBColor/namedColor "Button.default.foreground"))
+
+     ;; Diff highlights need translucent fills so the underlying code stays readable.
+     "diff-unchanged-bg" (rgba JBColor/GRAY 0.16)
+     "diff-insert-bg" (rgba JBColor/GREEN 0.20)
+     "diff-delete-bg" (rgba JBColor/RED 0.20)
+
+     "toggle-slider-bg" (hex (JBColor/namedColor "Button.background"))
+     "toggle-icon-bg" (hex (JBColor/namedColor "Button.foreground"))
+     "toggle-bg" (hex (JBColor/namedColor "Button.default.startBackground"))
+
+     "context-file-fg" (hex JBColor/ORANGE)
+     "context-directory-fg" (hex JBColor/YELLOW)
+     "context-web-fg" (hex JBColor/CYAN)
+     "context-repo-map-fg" (hex JBColor/MAGENTA)
+     "context-cursor-fg" (hex (JBColor/namedColor "Editor.foreground"))
+     "context-mcp-resource-fg" (hex JBColor/GREEN)}))
 
 (defn theme-css ^String []
   (str ":root {\n"
