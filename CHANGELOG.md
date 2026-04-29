@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Hide the JCEF webview "Open DevTools" right-click entry in production builds (now gated by `config/dev?`); the toolbar DevTools button remains dev-only as before.
+- Fix broken tool-window `icon` reference in `plugin.xml` that pointed to a non-existent class; now points to `dev.eca.eca_intellij.Icons.ECA_LIGHT`.
+
 ## 0.26.1
 
 - Fix Windows server binary being saved without `.exe` extension, which prevented the auto-downloaded server from launching without a manual rename workaround.

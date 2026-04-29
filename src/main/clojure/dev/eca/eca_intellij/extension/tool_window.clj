@@ -131,7 +131,8 @@
 (defn ^:private create-tool-window-content
   [^Project project ^ToolWindow tool-window]
   (System/setProperty "ide.browser.jcef.jsQueryPoolSize" "200")
-  (System/setProperty "ide.browser.jcef.contextMenu.devTools.enabled" "true")
+  (when (config/dev?)
+    (System/setProperty "ide.browser.jcef.contextMenu.devTools.enabled" "true"))
   (let [url (if (config/dev?)
               "http://localhost:5173/intellij_index.html"
               "http://eca/index.html")
