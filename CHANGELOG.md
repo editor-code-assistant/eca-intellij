@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: chat prompt area now renders flat (no border, no rounded corners, no drop-shadow) inside the IntelliJ tool window. The modal-card treatment recently added for `eca-desktop`'s wide window looked out of place in narrow side panels, so it's now scoped to `eca-desktop` only.
+
 ## 0.26.2
 
 - Hide the JCEF webview "Open DevTools" right-click entry in production builds (now gated by `config/dev?`); the toolbar DevTools button remains dev-only as before.
