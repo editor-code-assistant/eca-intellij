@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.4
+
 - Bump `eca-webview`: restore chat vertical scroll. A recent `.message-row { overflow: hidden }` rule (intended to clip wide content like syntax-highlighted code) was triggering CSS Flexbox §4.5 behavior that collapsed each row's automatic min-height to 0, letting messages be flex-shrunk and visually cropped instead of overflowing into the chat scroller. The fix locks each row's height to its content (`flex-shrink: 0`) so vertical overflow propagates to the messages scroller as intended.
 
 ## 0.26.3
