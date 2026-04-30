@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: drop the 0.3em bottom margin on the chat prompt-area inside the IntelliJ tool window. The tool window already supplies framing, so the margin read as wasted vertical space between the prompt and the panel's bottom edge. (Same change also applies to `eca-vscode` and `eca-web`; the modal-card margins around the centered prompt in `eca-desktop` are kept.)
+- Bump `eca-webview`: restore the empty-chat centered-welcome layout in `eca-desktop` / `eca-web`. A recent `.messages-wrapper` insertion (added so the floating scroll-to-latest button could share a positioning ancestor with the scroller) silently broke two `>` direct-child selectors in the `.hero-mode` block of `Chat.scss`, leaving the welcome stranded at the center of the messages region and the prompt pinned at the very bottom of the viewport. Walking through the wrapper restores welcome+prompt as a centered group with empty space top and bottom. No visible change in IntelliJ since hero mode never triggers there (`isWeb` is false for `data-editor="intellij"`); included in this bump because the fixes ship together upstream.
+
 ## 0.26.4
 
 - Bump `eca-webview`: restore chat vertical scroll. A recent `.message-row { overflow: hidden }` rule (intended to clip wide content like syntax-highlighted code) was triggering CSS Flexbox §4.5 behavior that collapsed each row's automatic min-height to 0, letting messages be flex-shrunk and visually cropped instead of overflowing into the chat scroller. The fix locks each row's height to its content (`flex-shrink: 0`) so vertical overflow propagates to the messages scroller as intended.
