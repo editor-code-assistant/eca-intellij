@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.3
+
 - Bump `eca-webview`: chat prompt area now renders flat (no border, no rounded corners, no drop-shadow) inside the IntelliJ tool window. The modal-card treatment recently added for `eca-desktop`'s wide window looked out of place in narrow side panels, so it's now scoped to `eca-desktop` only.
 - Bump `eca-webview`: keep the compact wide-width spacing for the right-side subheader actions (trust toggle, timeline, export, clear, settings) when the IntelliJ tool window is dragged narrow. The previous mobile breakpoint was inflating each icon to a 44×44 hit-target box and introducing uneven gaps between them; the rule is now scoped to actual touch devices only.
 
