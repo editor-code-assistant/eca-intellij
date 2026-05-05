@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: trim the chunky top/side padding that appeared inside every popover in the IntelliJ tool window (commands picker, file mentions, select dropdowns, contexts list). The padding came from `react-tooltip`'s internal `.react-tooltip-content-wrapper` shipping `padding: 8px 16px` baked into the library CSS, which stacked on top of the outer `.eca-tooltip` padding (and on top of every per-popup `padding: 0 !important` override). It is now zeroed in `ToolTip.scss` so each tooltip/popup controls its own padding via the outer element only.
+- Bump `eca-webview`: prevent a crash in the chat command picker (`/`) when a `ChatCommand.arguments` field arrives as `null` from the server.
+
 ## 0.26.5
 
 - Bump `eca-webview`: drop the 0.3em bottom margin on the chat prompt-area inside the IntelliJ tool window. The tool window already supplies framing, so the margin read as wasted vertical space between the prompt and the panel's bottom edge. (Same change also applies to `eca-vscode` and `eca-web`; the modal-card margins around the centered prompt in `eca-desktop` are kept.)
