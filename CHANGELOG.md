@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.7
+
 - Forward the optional `chatId` field from the webview to the server on `chat/selectedModelChanged` and `chat/selectedAgentChanged` notifications, so per-chat model/agent selection is scoped correctly. Strip `chatId` from the persisted `:server-config` snapshot when re-broadcasting `config/updated` to the webview, so a stale per-chat scope never leaks on `webview/ready` replay. Mirrors eca-emacs#231.
 
 ## 0.26.6
