@@ -189,9 +189,11 @@
                               (send-msg! project
                                          {:type "chat/newChat"
                                           :data {:id (:chat-id result)}}))
-          "chat/selectedModelChanged" (api/notify! client [:chat/selectedModelChanged {:model (:model data)
+          "chat/selectedModelChanged" (api/notify! client [:chat/selectedModelChanged {:chatId (:chatId data)
+                                                                                       :model (:model data)
                                                                                        :variant (:variant data)}])
-          "chat/selectedAgentChanged" (api/notify! client [:chat/selectedAgentChanged {:agent (:agent data)}])
+          "chat/selectedAgentChanged" (api/notify! client [:chat/selectedAgentChanged {:chatId (:chatId data)
+                                                                                       :agent (:agent data)}])
           "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
                                 (send-msg! project {:type "chat/queryContext"
                                                     :data result}))
@@ -397,7 +399,12 @@
 
 (defmethod api/config-updated :default
   [{:keys [project]} params]
-  (db/update-in project [:server-config] #(merge % params))
+  ;; The server scopes per-chat config updates with a top-level :chatId.
+  ;; Keep that field out of the persisted :server-config snapshot (which is
+  ;; replayed verbatim on webview/ready) so a stale chatId never leaks into
+  ;; an unrelated re-broadcast; the live params keep the field for the
+  ;; immediate forward to the webview.
+  (db/update-in project [:server-config] #(merge % (dissoc params :chatId)))
   (handle-config-changed project params))
 
 (defmethod api/chat-content-received :default

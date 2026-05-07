@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Forward the optional `chatId` field from the webview to the server on `chat/selectedModelChanged` and `chat/selectedAgentChanged` notifications, so per-chat model/agent selection is scoped correctly. Strip `chatId` from the persisted `:server-config` snapshot when re-broadcasting `config/updated` to the webview, so a stale per-chat scope never leaks on `webview/ready` replay. Mirrors eca-emacs#231.
+
 ## 0.26.6
 
 - Bump `eca-webview`: trim the chunky top/side padding that appeared inside every popover in the IntelliJ tool window (commands picker, file mentions, select dropdowns, contexts list). The padding came from `react-tooltip`'s internal `.react-tooltip-content-wrapper` shipping `padding: 8px 16px` baked into the library CSS, which stacked on top of the outer `.eca-tooltip` padding (and on top of every per-popup `padding: 0 !important` override). It is now zeroed in `ToolTip.scss` so each tooltip/popup controls its own padding via the outer element only.
