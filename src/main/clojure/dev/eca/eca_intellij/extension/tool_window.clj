@@ -9,16 +9,21 @@
   (:import
    [com.intellij.ide BrowserUtil]
    [com.intellij.openapi.actionSystem ActionManager]
+   [com.intellij.openapi.keymap Keymap KeymapManager]
    [com.intellij.openapi.project DumbAwareAction Project]
    [com.intellij.openapi.util Disposer]
    [com.intellij.openapi.wm ToolWindow ToolWindowAnchor ToolWindowFactory]
    [com.intellij.ui.content ContentFactory]
    [com.intellij.ui.jcef JBCefBrowser JBCefBrowserBase JBCefJSQuery]
    [dev.eca.eca_intellij EcaSchemeHandlerFactory]
+   [java.awt Component]
+   [java.awt.event KeyEvent]
    [org.cef CefApp]
+   [org.cef.browser CefBrowser]
    [org.cef.callback CefCallback CefSchemeHandlerFactory]
-   [org.cef.handler CefLoadHandlerAdapter CefResourceHandler]
-   [org.cef.misc IntRef]
+   [org.cef.handler CefKeyboardHandler$CefKeyEvent CefKeyboardHandler$CefKeyEvent$EventType
+                    CefKeyboardHandlerAdapter CefLoadHandlerAdapter CefResourceHandler]
+   [org.cef.misc BoolRef IntRef]
    [org.cef.network CefRequest CefResponse]))
 
 (set! *warn-on-reflection* true)
@@ -81,6 +86,67 @@
                "}")
           (.inject js-query "msg")))
 
+;; CEF event-flag bits (mirrors cef_event_flags_t in cef_types.h).
+(def ^:private ^:const ^long event-flag-shift   0x02)
+(def ^:private ^:const ^long event-flag-control 0x04)
+(def ^:private ^:const ^long event-flag-alt     0x08)
+(def ^:private ^:const ^long event-flag-command 0x80)
+
+;; Emacs-keymap caret-motion chord (Windows VK code of the typed letter)
+;; -> destination navigation key. Matches IntelliJ's built-in Emacs keymap,
+;; which the JCEF webview otherwise bypasses entirely.
+(def ^:private emacs-chord->nav-key
+  {KeyEvent/VK_A KeyEvent/VK_HOME
+   KeyEvent/VK_E KeyEvent/VK_END
+   KeyEvent/VK_P KeyEvent/VK_UP
+   KeyEvent/VK_N KeyEvent/VK_DOWN
+   KeyEvent/VK_F KeyEvent/VK_RIGHT
+   KeyEvent/VK_B KeyEvent/VK_LEFT})
+
+(defn ^:private emacs-keymap?
+  "True when the user's active IntelliJ keymap name contains 'emacs'
+   (covers 'Emacs', 'Emacs (macOS)', and user-overridden Emacs variants)."
+  []
+  (when-let [^Keymap keymap (some-> (KeymapManager/getInstance) .getActiveKeymap)]
+    (-> (.getName keymap) .toLowerCase (.contains "emacs"))))
+
+(defn ^:private send-nav-key
+  "Synthesize a press+release of `target-vk` on `cef-browser` so the focused
+   editable element handles it as a native navigation key."
+  [^CefBrowser cef-browser ^Component component target-vk]
+  (let [now (System/currentTimeMillis)
+        vk (int target-vk)]
+    (.sendKeyEvent cef-browser
+                   (KeyEvent. component KeyEvent/KEY_PRESSED  now 0 vk KeyEvent/CHAR_UNDEFINED))
+    (.sendKeyEvent cef-browser
+                   (KeyEvent. component KeyEvent/KEY_RELEASED now 0 vk KeyEvent/CHAR_UNDEFINED))))
+
+(defn ^:private emacs-keyboard-handler
+  "CEF keyboard handler that translates the six standard Emacs caret-motion
+   chords (Ctrl+A/E/P/N/F/B) inside editable webview elements into the
+   matching navigation keys, restoring IntelliJ's Emacs-keymap behavior
+   inside the JCEF chat prompt. Active only when the user's active
+   IntelliJ keymap is Emacs; otherwise the chord passes through to
+   Chromium unchanged (so Ctrl+A still selects-all, Ctrl+F still finds, ...)."
+  [^JBCefBrowser browser]
+  (let [^CefBrowser cef-browser (.getCefBrowser browser)
+        ^Component component (.getComponent browser)
+        other-mods-mask (bit-or event-flag-shift event-flag-alt event-flag-command)]
+    (proxy+ [] CefKeyboardHandlerAdapter
+      (onPreKeyEvent [_this _b ^CefKeyboardHandler$CefKeyEvent event ^BoolRef _shortcut]
+        (let [modifiers (.modifiers event)]
+          (if (and (identical? CefKeyboardHandler$CefKeyEvent$EventType/KEYEVENT_RAWKEYDOWN
+                               (.type event))
+                   (pos? (bit-and modifiers event-flag-control))
+                   (zero? (bit-and modifiers other-mods-mask))
+                   (.focus_on_editable_field event)
+                   (emacs-keymap?))
+            (if-let [target-vk (get emacs-chord->nav-key (.windows_key_code event))]
+              (do (send-nav-key cef-browser component target-vk)
+                  true)
+              false)
+            false))))))
+
 (defn ^:private create-webview ^JBCefBrowser [^Project project url]
   (let [browser (-> (JBCefBrowser/createBuilder)
                     (.setOffScreenRendering true) ;; TODO move to config
@@ -108,6 +174,10 @@
                                                                       (webview/handle-server-status-changed status project)))
              (db/assoc-in project [:on-settings-changed-fns :webview] (fn []
                                                                         (webview/handle-config-changed project (db/get-in project [:server-config]))))))))
+     (.getCefBrowser browser))
+    (.addKeyboardHandler
+     (.getJBCefClient browser)
+     (emacs-keyboard-handler browser)
      (.getCefBrowser browser))
     browser))
 
