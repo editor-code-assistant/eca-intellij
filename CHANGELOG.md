@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.8
+
 - Add `_selected` SVG variants for the ECA tool-window stripe icon (`eca_light_selected.svg`, `eca_dark_selected.svg`). IntelliJ now swaps in the white logo when the ECA tool-window button is in the selected/highlighted state, so the icon stays legible on top of the IDE's blue selection background instead of the teal-on-blue blend reported in #17.
 - Translate the standard Emacs caret-motion chords `Ctrl-A`/`Ctrl-E`/`Ctrl-P`/`Ctrl-N`/`Ctrl-F`/`Ctrl-B` inside the ECA chat prompt into `Home`/`End`/`Up`/`Down`/`Right`/`Left` via a CEF keyboard handler attached to the JCEF webview, so the IntelliJ Emacs keymap finally works in the prompt as it does everywhere else in the IDE. The chord is only consumed when the active IntelliJ keymap name contains `emacs`, the focused element is editable, and no `Shift`/`Alt`/`Meta` is held — so users on the default keymap keep Chromium's native `Ctrl-A` (select-all) and `Ctrl-F` (find) inside the webview. Closes #16.
 
