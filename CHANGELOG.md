@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add `_selected` SVG variants for the ECA tool-window stripe icon (`eca_light_selected.svg`, `eca_dark_selected.svg`). IntelliJ now swaps in the white logo when the ECA tool-window button is in the selected/highlighted state, so the icon stays legible on top of the IDE's blue selection background instead of the teal-on-blue blend reported in #17.
+
 ## 0.26.7
 
 - Forward the optional `chatId` field from the webview to the server on `chat/selectedModelChanged` and `chat/selectedAgentChanged` notifications, so per-chat model/agent selection is scoped correctly. Strip `chatId` from the persisted `:server-config` snapshot when re-broadcasting `config/updated` to the webview, so a stale per-chat scope never leaks on `webview/ready` replay. Mirrors eca-emacs#231.
