@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.12
+
 - Fix `clean publishPlugin` failing on a fresh CI runner with clojurephant 0.8.0: `clojure.builds.named("main")` was passing `runtimeClasspath.asPath + "build/classes/kotlin/main"` (a single concatenated string with no separator) to `classpath.from(...)`, which the stricter input validation rejected as an unstat-able path. Now passes a proper `FileCollection` (`runtimeClasspath + file("build/classes/kotlin/main")`), mirroring the working `clojureRepl` block.
 
 ## 0.26.11
