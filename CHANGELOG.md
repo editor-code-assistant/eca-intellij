@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.9
+
 - Add `bb build-prod-plugin` / `bb install-prod-plugin` tasks for producing/installing a prod-flavored plugin zip locally (builds the webview production assets and runs `./gradlew clean buildPlugin -PprodBuild`, which skips bundling `src/main/dev-resources/is-dev` so the plugin loads `http://eca/index.html` instead of the Vite dev server). Use these when you want to dogfood prod behavior without keeping `bb dev-webview` running.
 - Fix blank ECA tool window: the bundled React webview was crashing during init on `crypto.randomUUID` (a Chromium "secure context"-only API) because it loads from `http://eca/...`, leaving the panel empty with nothing logged in `idea.log`. `webview/index.html` now ships an inline polyfill (built on the still-available `crypto.getRandomValues`) that runs before the deferred React module evaluates. Same release also includes related JCEF hardening — per-`JBCefClient` JSQuery pool size, earlier `onLoadStart` bridge injection, `JBCefApp.isSupported` Swing fallback, multi-project `Reload ECA webview`/`Open ECA webview devtools` action fix — diagnostics (CEF load-error notifications + idea.log entries, 10s `webview/ready` watchdog, structured server-status broadcast logging), suppression of the spurious `ERR_ABORTED` notification from the Reload action's own two-step `loadURL`, and a correct favicon path (was 500-ing on `/logo.png`).
 
