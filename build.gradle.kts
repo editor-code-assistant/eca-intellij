@@ -43,9 +43,18 @@ dependencies {
 sourceSets {
     main {
         java.srcDirs("src/main", "src/gen")
-        if (project.gradle.startParameter.taskNames.contains("buildPlugin") ||
-            project.gradle.startParameter.taskNames.contains("clojureRepl") ||
-            project.gradle.startParameter.taskNames.contains("runIde")) {
+        // `src/main/dev-resources/is-dev` is a sentinel that makes
+        // `(config/dev?)` return true so the tool-window loads the Vite dev
+        // server at `http://localhost:5173` instead of the bundled webview at
+        // `http://eca/...`. We only want this for local `buildPlugin`,
+        // `clojureRepl` and `runIde` invocations — and never when the caller
+        // explicitly asks for a prod-flavored local build via `-PprodBuild`
+        // (see `bb build-prod-plugin` / `bb install-prod-plugin`).
+        val isProdBuild = project.hasProperty("prodBuild")
+        if (!isProdBuild &&
+            (project.gradle.startParameter.taskNames.contains("buildPlugin") ||
+             project.gradle.startParameter.taskNames.contains("clojureRepl") ||
+             project.gradle.startParameter.taskNames.contains("runIde"))) {
             resources.srcDirs("src/main/dev-resources")
         }
     }

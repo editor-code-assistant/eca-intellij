@@ -46,8 +46,25 @@ This will start Vite dev server on `http://localhost:5173`, so any changes will 
 
 ### Plugin
 
-`bb install-plugin <pathToYourIntellij>` to install the plugin locally.
+`bb install-plugin <pathToYourIntellij>` to install the plugin locally. The
+installed plugin will point at the Vite dev server, so you also need
+`bb dev-webview` running for it to render.
 
 or
 
 `bb build-plugin` to manually install via intellij the .zip.
+
+#### Prod-flavored local install
+
+If you want to install the plugin locally and run it **without** `bb dev-webview`
+(i.e. with the production webview bundled into the zip, just like the
+JetBrains-marketplace build), use:
+
+`bb install-prod-plugin <pathToYourIntellij>` — builds the webview prod assets,
+builds the plugin zip with `is-dev` stripped out, and unzips it into the
+IntelliJ plugins directory.
+
+or
+
+`bb build-prod-plugin` — same build, but stops at producing the zip in
+`build/distributions/`.

@@ -40,20 +40,48 @@
 (defn dev-webview []
   (shell "npm run dev --prefix eca-webview"))
 
+(defn ^:private build-webview []
+  (shell "npm install --prefix eca-webview")
+  (shell "npm run build --prefix eca-webview"))
+
 (defn build-plugin []
   (shell "./gradlew buildPlugin"))
+
+(defn build-prod-plugin
+  "Build a prod-flavored plugin zip with the production webview bundled in.
+
+  Unlike `build-plugin`, this skips `src/main/dev-resources/is-dev` so the
+  tool-window loads the bundled webview at `http://eca/...` instead of the
+  Vite dev server at `http://localhost:5173`. Use this when you want to
+  install the plugin locally without running `bb dev-webview`."
+  []
+  (build-webview)
+  (shell "./gradlew clean buildPlugin -PprodBuild"))
+
+(defn ^:private unzip-plugin-into [intellij-plugins-path]
+  (let [version (last (re-find version-regex (slurp "gradle.properties")))]
+    (fs/unzip (format "./build/distributions/eca-intellij-%s.zip" version)
+              intellij-plugins-path
+              {:replace-existing true})
+    (println "Installed!")))
 
 (defn install-plugin [& [intellij-plugins-path]]
   (if-not intellij-plugins-path
     (println "Specify the Intellij plugins path\ne.g: bb install-plugin /home/greg/.local/share/JetBrains/IdeaIC2024.3")
-    (let [version (last (re-find version-regex (slurp "gradle.properties")))]
-      (build-plugin)
-      (fs/unzip (format "./build/distributions/eca-intellij-%s.zip" version)
-                intellij-plugins-path
-                {:replace-existing true})
-      (println "Installed!"))))
+    (do (build-plugin)
+        (unzip-plugin-into intellij-plugins-path))))
+
+(defn install-prod-plugin
+  "Install a prod-flavored plugin zip into the given IntelliJ plugins path.
+
+  Mirrors `install-plugin` but uses `build-prod-plugin` under the hood, so the
+  installed plugin uses the bundled webview instead of the Vite dev server."
+  [& [intellij-plugins-path]]
+  (if-not intellij-plugins-path
+    (println "Specify the Intellij plugins path\ne.g: bb install-prod-plugin /home/greg/.local/share/JetBrains/IdeaIC2024.3")
+    (do (build-prod-plugin)
+        (unzip-plugin-into intellij-plugins-path))))
 
 (defn publish-plugin []
-  (shell "npm install --prefix eca-webview")
-  (shell "npm run build --prefix eca-webview")
+  (build-webview)
   (shell "./gradlew clean publishPlugin"))

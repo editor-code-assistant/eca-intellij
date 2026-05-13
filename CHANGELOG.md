@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add `bb build-prod-plugin` / `bb install-prod-plugin` tasks for producing/installing a prod-flavored plugin zip locally (builds the webview production assets and runs `./gradlew clean buildPlugin -PprodBuild`, which skips bundling `src/main/dev-resources/is-dev` so the plugin loads `http://eca/index.html` instead of the Vite dev server). Use these when you want to dogfood prod behavior without keeping `bb dev-webview` running.
+
 ## 0.26.8
 
 - Add `_selected` SVG variants for the ECA tool-window stripe icon (`eca_light_selected.svg`, `eca_dark_selected.svg`). IntelliJ now swaps in the white logo when the ECA tool-window button is in the selected/highlighted state, so the icon stays legible on top of the IDE's blue selection background instead of the teal-on-blue blend reported in #17.
