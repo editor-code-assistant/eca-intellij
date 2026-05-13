@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.11
+
 - Fix `publish_plugin` CI: checkout the `eca-webview` git submodule so `bb publish-plugin` can build the webview (previous run failed on `ENOENT eca-webview/package.json`).
 
 ## 0.26.10
