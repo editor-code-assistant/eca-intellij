@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.10
+
 - Add GitHub Actions workflow that publishes the plugin to the JetBrains marketplace and creates a GitHub Release with the built zip on every `X.Y.Z*` tag push, so users can install the latest version without waiting for JetBrains review.
 
 ## 0.26.9
