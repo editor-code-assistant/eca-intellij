@@ -160,6 +160,12 @@
   (let [{:keys [type data]} (json/parse-string msg keyword)]
     (if (= "webview/ready" type)
       (do
+        ;; Mark the JS bridge as healthy so the watchdog scheduled in
+        ;; tool_window.clj's onLoadingStateChange (loading?=false) handler does
+        ;; not fire a false-positive "did not initialize" notification. Must be
+        ;; set BEFORE any handle-* call below so a slow downstream call cannot
+        ;; race with the 10s deadline.
+        (db/assoc-in project [:webview-ready?] true)
         (handle-server-status-changed (db/get-in project [:status])
                                       project)
         (handle-config-changed project (db/get-in project [:server-config]))

@@ -32,6 +32,20 @@
            :aarch64 "eca-native-macos-aarch64.zip"}
    :windows {:amd64 "eca-native-windows-amd64.zip"}})
 
+(defn ^:private broadcast-status!
+  "Notify every registered `:on-status-changed-fns` listener of `status` for
+   `project`, logging which listener keys are present so blank-webview bug
+   reports can be correlated with whether the `:webview` listener was reached
+   at broadcast time. The listener set is small (typically `:webview` plus
+   `:status-bar`), so logging the keys verbatim is safe."
+  [^Project project status]
+  (let [listeners (db/get-in project [:on-status-changed-fns])]
+    (logger/info (format "[ECA] Broadcasting status %s for project %s (listeners=%s)"
+                         status
+                         (.getName project)
+                         (vec (keys listeners))))
+    (run! #(% project status) (vals listeners))))
+
 (defn ^:private clean-up-server [^Project project]
   (let [server-process (db/get-in project [:server-process])]
     (when (some-> server-process p/alive?)
@@ -40,7 +54,7 @@
                              (assoc db :status :stopped
                                     :client nil
                                     :server-process nil)))
-  (run! #(% project :stopped) (vals (db/get-in project [:on-status-changed-fns]))))
+  (broadcast-status! project :stopped))
 
 (defn ^:private os-name []
   (let [os-name (string/lower-case (System/getProperty "os.name" "generic"))]
@@ -185,7 +199,7 @@
 
 (defn start! [^Project project]
   (db/assoc-in project [:status] :starting)
-  (run! #(% project :starting) (vals (db/get-in project [:on-status-changed-fns])))
+  (broadcast-status! project :starting)
   (tasks/run-background-task!
    project
    "ECA startup"
@@ -216,12 +230,12 @@
                                            :message "There is no server downloaded and there was a network issue trying to download the latest server"}))
 
        (db/assoc-in project [:status] :running)
-       (run! #(% project :running) (vals (db/get-in project [:on-status-changed-fns])))
+       (broadcast-status! project :running)
         ;; For race conditions when server starts too fast
         ;; and other places that listen didn't setup yet
        (future
          (Thread/sleep 1000)
-         (run! #(% project :running) (vals (db/get-in project [:on-status-changed-fns]))))
+         (broadcast-status! project :running))
        (logger/info "Initialized ECA"))))
   true)
 

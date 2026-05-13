@@ -2,7 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.png" />
+    <!--
+      Polyfill `crypto.randomUUID` BEFORE the deferred React module loads.
+
+      The webview is served from `http://eca/...`, which Chromium treats as
+      an *insecure context* (not HTTPS, not localhost). Several Web Crypto
+      APIs — including `crypto.randomUUID` — are gated to secure contexts
+      only, so without this polyfill the React bundle crashes on mount with
+      `TypeError: crypto.randomUUID is not a function` and the IntelliJ
+      panel renders blank with no `webview/ready` handshake. `getRandomValues`
+      is available in insecure contexts, so we use it for entropy and only
+      fall back to `Math.random` if the host strips that too.
+
+      This runs as a synchronous inline `<script>`, which evaluates before
+      any `<script type="module">` (which is implicitly deferred), so the
+      function is defined by the time React's bundle dereferences it.
+    -->
+    <script>
+      (function () {
+        if (!window.crypto) window.crypto = {};
+        if (typeof window.crypto.randomUUID !== 'function') {
+          window.crypto.randomUUID = function () {
+            var b = new Uint8Array(16);
+            if (window.crypto.getRandomValues) {
+              window.crypto.getRandomValues(b);
+            } else {
+              for (var i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+            }
+            b[6] = (b[6] & 0x0f) | 0x40; // RFC 4122 version 4
+            b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant 10
+            var h = [];
+            for (var i = 0; i < 16; i++) h.push((b[i] + 0x100).toString(16).slice(1));
+            return h[0] + h[1] + h[2] + h[3] + '-' +
+                   h[4] + h[5] + '-' +
+                   h[6] + h[7] + '-' +
+                   h[8] + h[9] + '-' +
+                   h[10] + h[11] + h[12] + h[13] + h[14] + h[15];
+          };
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/dist/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ECA</title>
     <link rel="stylesheet" href="/dist/assets/index.css" />

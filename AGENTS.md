@@ -1,0 +1,1 @@
+- Always make sure there is no reflection warnings and that bb build-plugin works after all changes were done.
