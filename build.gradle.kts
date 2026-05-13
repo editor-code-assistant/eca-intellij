@@ -167,7 +167,8 @@ tasks {
 }
 
 clojure.builds.named("main") {
-    classpath.from(sourceSets.main.get().runtimeClasspath.asPath + "build/classes/kotlin/main")
+    classpath.from(sourceSets.main.get().runtimeClasspath
+                   + file("build/classes/kotlin/main"))
     checkAll()
     aotAll()
     reflection.set("fail")

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix `clean publishPlugin` failing on a fresh CI runner with clojurephant 0.8.0: `clojure.builds.named("main")` was passing `runtimeClasspath.asPath + "build/classes/kotlin/main"` (a single concatenated string with no separator) to `classpath.from(...)`, which the stricter input validation rejected as an unstat-able path. Now passes a proper `FileCollection` (`runtimeClasspath + file("build/classes/kotlin/main")`), mirroring the working `clojureRepl` block.
+
 ## 0.26.11
 
 - Fix `publish_plugin` CI: checkout the `eca-webview` git submodule so `bb publish-plugin` can build the webview (previous run failed on `ENOENT eca-webview/package.json`).
