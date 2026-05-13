@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add GitHub Actions workflow that publishes the plugin to the JetBrains marketplace and creates a GitHub Release with the built zip on every `X.Y.Z*` tag push, so users can install the latest version without waiting for JetBrains review.
+
 ## 0.26.9
 
 - Add `bb build-prod-plugin` / `bb install-prod-plugin` tasks for producing/installing a prod-flavored plugin zip locally (builds the webview production assets and runs `./gradlew clean buildPlugin -PprodBuild`, which skips bundling `src/main/dev-resources/is-dev` so the plugin loads `http://eca/index.html` instead of the Vite dev server). Use these when you want to dogfood prod behavior without keeping `bb dev-webview` running.
