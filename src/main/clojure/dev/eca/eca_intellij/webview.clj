@@ -156,6 +156,15 @@
                                        :position {:start {:line (inc start-line) :character (inc start-char)}
                                                   :end {:line (inc end-line) :character (inc end-char)}}}}))))})))
 
+(defn ^:private current-selected-editor
+  "Extracted so tests can stub the FileEditorManager static call. Returns
+   the currently-focused editor in `project`, or nil when none. Wrapping
+   in `some->` defends against `FileEditorManager/getInstance` returning
+   nil in early-startup races and against the manager itself reporting no
+   selected editor."
+  [^Project project]
+  (some-> (FileEditorManager/getInstance project) .getSelectedTextEditor))
+
 (defn handle [msg ^Project project]
   (let [{:keys [type data]} (json/parse-string msg keyword)]
     (if (= "webview/ready" type)
@@ -170,7 +179,7 @@
                                       project)
         (handle-config-changed project (db/get-in project [:server-config]))
         ;; send current opened editor if any
-        (when-let [editor (.getSelectedTextEditor (FileEditorManager/getInstance project))]
+        (when-let [editor (current-selected-editor project)]
           (on-focus-changed editor nil))
         (db/assoc-in project [:on-focus-changed-fns :webview] #'on-focus-changed)
         ;; Hook the log-store into the webview. Every new entry is
