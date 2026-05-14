@@ -38,6 +38,13 @@ dependencies {
     implementation ("org.clojure:core.async:1.5.648") {
         because("issue https://clojure.atlassian.net/browse/ASYNC-248")
     }
+
+    // JUnit 4 stays available for any Kotlin platform-level tests we add
+    // alongside the Clojure suite (BasePlatformTestCase is JUnit 4 friendly).
+    // Clojure tests do not need a JUnit Platform engine because the
+    // `clojureTest` JavaExec task invokes `clojure.main -m
+    // eca-intellij.test-runner` directly.
+    testImplementation ("junit:junit:4.13.2")
 }
 
 sourceSets {
@@ -172,4 +179,73 @@ clojure.builds.named("main") {
     checkAll()
     aotAll()
     reflection.set("fail")
+}
+
+clojure.builds.named("test") {
+    // Test compilation needs the main Clojure + Kotlin output on its
+    // classpath (so test ns can `require` production code), plus the test
+    // runtime classpath itself for the fixtures namespace.
+    classpath.from(sourceSets.test.get().runtimeClasspath
+                   + file("build/classes/kotlin/main")
+                   + file("build/clojure/main")
+                   + file("build/classes/kotlin/test"))
+    checkAll()
+    // No `aotAll()` keeps test compilation fast and avoids leaking AOT
+    // classes into the test-runtime jar. Reflection warnings are surfaced
+    // but do not fail the build; the main build is the strict gate.
+    reflection.set("warn")
+}
+
+// Dedicated test task for the Clojure unit + integration suite.
+//
+// Why a separate JavaExec instead of customizing the standard `test`:
+// The `org.jetbrains.intellij` plugin retrofits every `Test` task with
+// JBR (JetBrains Runtime) as the JVM, the IntelliJ sandbox, and
+// `-Djava.system.class.loader=com.intellij.util.lang.PathClassLoader`.
+// PathClassLoader's URLConnections are not JarURLConnections, which
+// makes Clojure's `RT.load` throw a ClassCastException before any
+// deftest can run. JBR's dynamically linked binaries also fail to
+// launch on NixOS hosts. By running our suite via JavaExec, which the
+// IDE plugin does not touch, we keep the stock `test` task available
+// for any future BasePlatformTestCase suite while sidestepping every
+// IDE-test-runner assumption.
+val clojureTest by tasks.registering(JavaExec::class) {
+    description = "Runs the Clojure test suite via clojure.test."
+    group = "verification"
+    dependsOn("compileTestClojure")
+
+    // Build the classpath from the compile outputs + dependency JARs
+    // ONLY, deliberately leaving out `processResources`. Otherwise
+    // Gradle pulls `:processResources` into the graph just to satisfy
+    // the resource portion of `runtimeClasspath`, which fails on hosts
+    // where the `src/main/resources/webview/dist` symlink dangles
+    // (it points into the `eca-webview` submodule's npm build output,
+    // which the test job has no reason to build).
+    classpath = sourceSets.main.get().output.classesDirs +
+                sourceSets.test.get().output.classesDirs +
+                files("build/clojure/main") +
+                files("build/clojure/test") +
+                configurations.named("testRuntimeClasspath").get()
+
+    mainClass.set("clojure.main")
+
+    // -m invokes (-main) on the named namespace, which discovers every
+    // `*_test.clj` file under src/test/clojure and runs its deftests.
+    args("-m", "eca-intellij.test-runner")
+}
+
+// `bb test` is wired to `./gradlew test`. Hook clojureTest into the
+// existing alias so the bb task keeps working without user-visible
+// changes, and disable the IntelliJ-plugin-managed `test` body itself
+// (no BasePlatformTestCase suite yet; reactivate when one lands).
+tasks.named("test") {
+    dependsOn("clojureTest")
+    enabled = false
+}
+
+// checkTestClojure reads the same output dir that compileTestClojure writes
+// to (build/clojure/test); declare the ordering edge so Gradle's task graph
+// validator stops complaining about an implicit dependency.
+tasks.named("checkTestClojure") {
+    mustRunAfter("compileTestClojure")
 }
