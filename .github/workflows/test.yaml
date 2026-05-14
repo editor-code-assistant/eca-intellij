@@ -45,5 +45,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # processResources follows src/main/resources/webview/dist (a
+      # symlink into eca-webview/dist) even when only the test task is
+      # invoked, because the IntelliJ Gradle plugin wires `classes`
+      # into the test graph. On fresh checkouts the dist symlink target
+      # does not exist, so create an empty placeholder; the test suite
+      # does not consume any bundled webview asset.
+      - name: Stub webview dist
+        run: mkdir -p eca-webview/dist
+
       - name: Run tests
         run: bb test

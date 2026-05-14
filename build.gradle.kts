@@ -214,10 +214,18 @@ val clojureTest by tasks.registering(JavaExec::class) {
     group = "verification"
     dependsOn("compileTestClojure")
 
-    classpath = sourceSets.test.get().runtimeClasspath +
-                files("build/classes/kotlin/main") +
+    // Build the classpath from the compile outputs + dependency JARs
+    // ONLY, deliberately leaving out `processResources`. Otherwise
+    // Gradle pulls `:processResources` into the graph just to satisfy
+    // the resource portion of `runtimeClasspath`, which fails on hosts
+    // where the `src/main/resources/webview/dist` symlink dangles
+    // (it points into the `eca-webview` submodule's npm build output,
+    // which the test job has no reason to build).
+    classpath = sourceSets.main.get().output.classesDirs +
+                sourceSets.test.get().output.classesDirs +
                 files("build/clojure/main") +
-                files("build/clojure/test")
+                files("build/clojure/test") +
+                configurations.named("testRuntimeClasspath").get()
 
     mainClass.set("clojure.main")
 
