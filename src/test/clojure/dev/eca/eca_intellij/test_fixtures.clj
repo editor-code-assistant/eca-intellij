@@ -3,12 +3,12 @@
 
    Two main pieces tests reach for:
 
-     * `with-test-project` — registers a synthetic `Project` in the real
+     * `with-test-project` -- registers a synthetic `Project` in the real
        `db/db*` atom for the body's duration, then cleans up. Lets every
        db.clj reader/writer in production code run unmodified against a
        per-test scratch slot.
 
-     * `with-stub-bridge` — replaces the IO-touching seams in
+     * `with-stub-bridge` -- replaces the IO-touching seams in
        `webview.clj` (`send-msg!`, `api/connected-client`, `api/request!`,
        `api/notify!`, `app-manager/invoke-later!`, `read-action!`,
        `current-selected-editor`) with capture-and-stub fns. Tests then
@@ -24,10 +24,6 @@
    [dev.eca.eca-intellij.webview :as webview])
   (:import
    [com.intellij.openapi.project Project]))
-
-(set! *warn-on-reflection* true)
-
-;; ── Project stand-in ──────────────────────────────────────────────
 
 (defn test-project
   "Return a `Project` stand-in with just enough surface for the
@@ -84,8 +80,6 @@
          (finally
            (swap! db/db* update :projects dissoc base-path#))))))
 
-;; ── Bridge stubs ──────────────────────────────────────────────────
-
 (defrecord BridgeStub [sent-to-webview
                       sent-to-server
                       request-replies])
@@ -98,7 +92,7 @@
 (defn sent-to-webview
   "Every message `send-msg!` would have shipped to the React app, in
    order. Each entry is the raw Clojure map captured before the
-   camel-case + cheshire trip — use `msg->json` when a test wants to
+   camel-case + cheshire trip -- use `msg->json` when a test wants to
    assert on byte-for-byte JSON shape."
   [bridge]
   @(:sent-to-webview bridge))
@@ -134,26 +128,18 @@
   [bridge method value]
   (swap! (:request-replies bridge) assoc method value))
 
-(defn make-stub-promise
-  "Public so macro expansion at call sites in other namespaces can
-   resolve the symbol; not intended as a general-purpose helper."
-  [value]
-  (doto (promise) (deliver value)))
-
 (defmacro with-stub-bridge
-  "Run `body` with every IO seam in webview.clj redirected through
-   `bridge-sym`:
+  "Run `body` with every IO seam in webview.clj redirected through a
+   fresh bridge bound to `bridge-sym`:
 
-     - `webview/send-msg!`              → capture msg into bridge
-     - `webview/current-selected-editor`→ nil (no editor active)
-     - `api/connected-client`           → ::stub-client sentinel
-     - `api/request!`                   → record + deliver pre-staged
-                                          reply (defaults to {})
-     - `api/notify!`                    → record (no return)
-     - `app-manager/invoke-later!`      → run :invoke-fn synchronously
-     - `app-manager/read-action!`       → run :run-fn synchronously
-
-   The bridge is created if you do not supply one."
+     - `webview/send-msg!`              capture msg into bridge
+     - `webview/current-selected-editor` nil (no editor active)
+     - `api/connected-client`           ::stub-client sentinel
+     - `api/request!`                   record + deliver pre-staged
+                                        reply (defaults to {})
+     - `api/notify!`                    record (no return)
+     - `app-manager/invoke-later!`      run :invoke-fn synchronously
+     - `app-manager/read-action!`       run :run-fn synchronously"
   [bridge-sym & body]
   `(let [~bridge-sym (bridge-stub)]
      (with-redefs
@@ -170,7 +156,7 @@
                                v# (if (contains? replies# method#)
                                     (get replies# method#)
                                     {})]
-                           (make-stub-promise v#))))
+                           (doto (promise) (deliver v#)))))
         api/notify! (fn [_client# args#]
                       (let [method# (first args#)
                             body# (second args#)]
@@ -181,17 +167,15 @@
         app-manager/read-action! (fn [opts#] ((:run-fn opts#)))]
        ~@body)))
 
-;; ── Misc helpers ──────────────────────────────────────────────────
-
 (defn msg->json
   "Serialize a captured outbound message through the same path
-   send-msg! takes in production (kebab→camel keys, then cheshire).
+   send-msg! takes in production (kebab->camel keys, then cheshire).
    Useful when a test wants to assert on the literal JSON shape."
   [msg]
   (json/generate-string (shared/map->camel-cased-map msg)))
 
 (defn to-json-payload
-  "Webview → host messages arrive as JSON strings. Build one from a
+  "Webview -> host messages arrive as JSON strings. Build one from a
    Clojure map so tests can drive `webview/handle` with realistic input."
   [m]
   (json/generate-string m))

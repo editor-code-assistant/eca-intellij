@@ -1,13 +1,8 @@
 (ns dev.eca.eca-intellij.webview-editor-logs-test
-  "Integration tests for the editor/*, logs/* and chat/askQuestion
-   branches that DO NOT touch IntelliJ static services inline.
-
-   The branches that DO (`editor/openFile`, `editor/openGlobalConfig`,
-   `editor/openUrl`, `editor/refresh`, `editor/openServerLogs`,
-   `editor/saveFile`) live behind a `LocalFileSystem/getInstance` or
-   `FileEditorManager/getInstance` call that cannot be exercised
-   outside an IDE sandbox; those are covered by the L3 Kotlin
-   BasePlatformTestCase suite."
+  "Tests for the editor/* and logs/* branches of webview/handle that
+   are reachable without an IDE sandbox. The branches behind
+   `LocalFileSystem/getInstance` and `FileEditorManager/getInstance`
+   are deferred to a future BasePlatformTestCase suite."
   (:require
    [cheshire.core :as json]
    [clojure.java.io :as io]
@@ -21,10 +16,8 @@
    [java.io File]
    [java.util Base64]))
 
-;; ── editor/readGlobalConfig ───────────────────────────────────────
-
 (deftest read-global-config-replies-with-content-path-and-request-id
-  (testing "Regression 88fca15: the Settings → Global Config tab spun
+  (testing "Regression 88fca15: the Settings -> Global Config tab spun
             forever before this handler existed. The reply MUST carry
             both the absolute path (so the tab can show the file
             location) and a `request-id` (which becomes `requestId`
@@ -48,7 +41,7 @@
               (is (= (.getAbsolutePath tmp) (get-in reply [:data :path])))
               (is (true? (get-in reply [:data :exists])))
               (is (= "rg-1" (get-in parsed [:data :requestId]))
-                  "the camelCase walker MUST translate :request-id → requestId
+                  "the camelCase walker MUST translate :request-id -> requestId
                    so the React reply handler can correlate"))))
         (finally (.delete tmp))))))
 
@@ -67,8 +60,6 @@
           (is (= "rg-2" (get-in reply [:data :request-id])))
           (is (= "" (get-in reply [:data :contents])))
           (is (false? (get-in reply [:data :exists]))))))))
-
-;; ── editor/writeGlobalConfig ──────────────────────────────────────
 
 (deftest write-global-config-success-echoes-request-id
   (let [tmp (File/createTempFile "eca-wg-" ".json")]
@@ -130,12 +121,12 @@
             (is (re-find #"Invalid JSONC" (get-in reply [:data :error]))))))
       (finally (when (.exists tmp) (.delete tmp))))))
 
-;; ── editor/saveClipboardImage ─────────────────────────────────────
-
 (deftest save-clipboard-image-writes-to-tmp-and-echoes-request-id
-  (testing "Image roundtrip: 1x1 transparent PNG (smallest valid PNG)."
-    (let [;; tiny base64 sample doesn't have to be a real image; the
-          ;; handler doesn't decode/validate beyond base64.
+  (testing "The handler does not decode or validate beyond base64; any
+            opaque payload is fine as the test fixture."
+    (let [;; First four bytes of a PNG magic header; not a complete
+          ;; image, but the handler only decodes the base64 and writes
+          ;; bytes to disk.
           png-bytes (byte-array [0x89 0x50 0x4E 0x47])
           b64 (.encodeToString (Base64/getEncoder) png-bytes)]
       (fixt/with-test-project [project]
@@ -174,7 +165,7 @@
           (.delete (io/file target)))))))
 
 (deftest save-clipboard-image-bad-base64-does-not-throw
-  (testing "Handler wraps the decode in try/catch — malformed base64
+  (testing "Handler wraps the decode in try/catch -- malformed base64
             must not crash the host or take the webview down."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
@@ -186,12 +177,8 @@
                                             :requestId "img-bad"}})
               project)))))))
 
-;; ── on-focus-changed defensive nil-handling ───────────────────────
-;; Regression bb315a4: NPE when an editor without a project or without
-;; a virtual file was focused.
-
 (deftest on-focus-changed-is-noop-when-editor-has-no-project
-  (testing "Regression bb315a4 — focusing the floating diff editor or
+  (testing "Regression bb315a4 -- focusing the floating diff editor or
             scratch buffer with no Project must NOT throw."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
@@ -201,8 +188,6 @@
                      editor-without-project nil)))
           (is (empty? (fixt/webview-of-type bridge "editor/focusChanged"))
               "no editor/focusChanged frame may go out for a project-less editor"))))))
-
-;; ── logs/snapshot, logs/clear, logs/appended ─────────────────────
 
 (deftest logs-snapshot-replies-with-current-buffer
   (fixt/with-test-project [project]

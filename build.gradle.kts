@@ -190,7 +190,7 @@ clojure.builds.named("test") {
                    + file("build/clojure/main")
                    + file("build/classes/kotlin/test"))
     checkAll()
-    // No `aotAll()` — keeps test compilation fast and avoids leaking AOT
+    // No `aotAll()` keeps test compilation fast and avoids leaking AOT
     // classes into the test-runtime jar. Reflection warnings are surfaced
     // but do not fail the build; the main build is the strict gate.
     reflection.set("warn")
@@ -205,8 +205,8 @@ clojure.builds.named("test") {
 // PathClassLoader's URLConnections are not JarURLConnections, which
 // makes Clojure's `RT.load` throw a ClassCastException before any
 // deftest can run. JBR's dynamically linked binaries also fail to
-// launch on NixOS hosts. By running our suite via JavaExec — which the
-// IDE plugin does not touch — we keep the stock `test` task available
+// launch on NixOS hosts. By running our suite via JavaExec, which the
+// IDE plugin does not touch, we keep the stock `test` task available
 // for any future BasePlatformTestCase suite while sidestepping every
 // IDE-test-runner assumption.
 val clojureTest by tasks.registering(JavaExec::class) {

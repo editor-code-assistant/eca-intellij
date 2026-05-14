@@ -18,7 +18,7 @@
         ;; Strip the test-root prefix so we end up with a relative path,
         ;; then translate the filesystem layout into a namespace symbol
         ;; (e.g. dev/eca/eca_intellij/foo_test.clj
-        ;;       → dev.eca.eca-intellij.foo-test).
+        ;;       -> dev.eca.eca-intellij.foo-test).
         idx (string/index-of path test-root)
         rel (subs path (+ idx (count test-root) 1))]
     (-> rel

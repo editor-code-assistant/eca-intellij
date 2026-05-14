@@ -9,7 +9,7 @@
 
 (deftest map->camel-cased-map-converts-top-level-keyword-keys
   (testing "csk returns keywords; cheshire later JSON-encodes those into
-            string keys, so the Clojure-level invariant is :kebab-case →
+            string keys, so the Clojure-level invariant is :kebab-case ->
             :camelCase keywords."
     (is (= {:chatId 1 :fooBar 2}
            (shared/map->camel-cased-map {:chat-id 1 :foo-bar 2})))))
@@ -44,7 +44,7 @@
     (is (nil? (shared/map->camel-cased-map nil)))))
 
 (deftest map->camel-cased-map-handles-realistic-logs-appended-payload
-  (testing "`logs/appended` (regression target: 88fca15) — :session-id must
+  (testing "`logs/appended` (regression target: 88fca15) -- :session-id must
             land on the wire as sessionId or the React Logs tab cannot
             correlate entries with their chat."
     (let [appended {:type "logs/appended"
@@ -69,7 +69,7 @@
 
 (deftest throttle-rate-limits-bursts
   (testing "Pumping a burst within the throttle window must NOT fan
-            out to N calls — `throttle` is the throttle behind the
+            out to N calls -- `throttle` is the throttle behind the
             server-logs editor update, where unbounded invocation would
             wedge the EDT."
     (let [hits (atom 0)

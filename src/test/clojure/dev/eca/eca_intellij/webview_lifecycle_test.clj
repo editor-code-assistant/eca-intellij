@@ -71,7 +71,7 @@
       (webview/handle (fixt/to-json-payload {:type "webview/ready"}) project)
       (is (contains? (db/get-in project [:on-focus-changed-fns]) :webview)
           ":webview key in :on-focus-changed-fns is what cursor-editor-listener fans
-           out to; missing → no live editor-focus updates to the chat"))))
+           out to; missing -> no live editor-focus updates to the chat"))))
 
 (deftest webview-ready-subscribes-log-store-with-replace-semantics
   (testing "Re-delivery of webview/ready (e.g. tool-window re-open) must
@@ -89,8 +89,8 @@
             scoped with :chatId; replaying :server-config on
             webview/ready must NOT leak a stale chatId into a new chat
             window. The dispatch path:
-            api/config-updated → db/update-in :server-config
-            → (merge old new) but with :chatId dissoc'd."
+            api/config-updated -> db/update-in :server-config
+            -> (merge old new) but with :chatId dissoc'd."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
         (api/config-updated {:project project}

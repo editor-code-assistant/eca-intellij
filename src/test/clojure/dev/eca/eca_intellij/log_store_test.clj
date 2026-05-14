@@ -1,6 +1,6 @@
 (ns dev.eca.eca-intellij.log-store-test
   "Unit tests for the in-memory log ring buffer + subscriber fan-out
-   that backs the Settings → Logs webview tab. The cap (5000 entries),
+   that backs the Settings -> Logs webview tab. The cap (5000 entries),
    subscriber replacement on the same key, and subscriber exception
    isolation are all behaviors the webview relies on; a regression
    here would silently lose log entries or stall live tail forever."
@@ -79,7 +79,7 @@
 
 (deftest subscribe-replaces-prior-listener-under-same-key
   (testing "On webview/ready re-delivery (tool-window re-open) the
-            handler re-runs subscribe! with key :webview — we MUST NOT
+            handler re-runs subscribe! with key :webview -- we MUST NOT
             end up with two listeners both firing on every entry."
     (fixt/with-test-project [project]
       (let [hits-a (atom 0)

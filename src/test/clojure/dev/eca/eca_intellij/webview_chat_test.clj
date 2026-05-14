@@ -1,15 +1,12 @@
 (ns dev.eca.eca-intellij.webview-chat-test
-  "Integration tests for the chat/* branches of `webview/handle` and
-   the server-side multimethods that forward chat notifications back to
-   the webview. Every recent chat-related regression has a named test
-   pinned to its commit hash."
+  "Tests for the chat/* branches of webview/handle and the server-side
+   multimethods that forward chat notifications back to the webview.
+   Recent regressions have a named test pinned to their commit hash."
   (:require
    [clojure.test :refer [deftest is testing]]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.test-fixtures :as fixt]
    [dev.eca.eca-intellij.webview :as webview]))
-
-;; ── chat/userPrompt → chat/newChat ────────────────────────────────
 
 (deftest user-prompt-forwards-to-server-with-full-body
   (fixt/with-test-project [project]
@@ -50,10 +47,6 @@
         (is (some? reply))
         (is (= "fresh-chat-id" (get-in reply [:data :id])))))))
 
-;; ── chat/selectedModelChanged / chat/selectedAgentChanged ─────────
-;; Regression: a7221cb — chatId MUST be on the outbound payload or the
-;; per-chat scope leaks across windows.
-
 (deftest selected-model-changed-carries-chat-id
   (testing "Regression a7221cb"
     (fixt/with-test-project [project]
@@ -88,8 +81,6 @@
           (is (= "chat-9" (:chatId body)))
           (is (= "code-reviewer" (:agent body))))))))
 
-;; ── chat/contentReceived forwarding ───────────────────────────────
-
 (deftest chat-content-received-forwards-verbatim-to-webview
   (testing "Server emits per-token streaming via chat/contentReceived;
             the host MUST forward verbatim (no aggregation) so the
@@ -115,9 +106,7 @@
         (is (= ["tok-0" "tok-1" "tok-2" "tok-3" "tok-4"]
                (mapv #(get-in % [:data :content]) msgs))
             "ordering relies on lsp4clj pipeline-blocking parallelism=1
-             — verify the host forward path itself does not reorder")))))
-
-;; ── chat/queryContext / queryCommands / queryFiles ────────────────
+             -- verify the host forward path itself does not reorder")))))
 
 (deftest query-context-round-trips-result
   (fixt/with-test-project [project]
@@ -161,8 +150,6 @@
         project)
       (let [reply (fixt/last-to-webview-of-type bridge "chat/queryFiles")]
         (is (= ["/a/b.clj" "/c/d.clj"] (get-in reply [:data :files])))))))
-
-;; ── chat/{toolCallApprove,toolCallReject,promptStop,promptSteer,…} ─
 
 (deftest tool-call-approve-routes-to-server-as-notify
   (fixt/with-test-project [project]
@@ -249,8 +236,6 @@
         project)
       (is (= :request (first (fixt/last-to-server-of bridge :chat/removeFlag)))))))
 
-;; ── chat-cleared / chat-deleted / chat-opened / chat-status-changed ──
-
 (deftest chat-cleared-forwarded-to-webview
   (fixt/with-test-project [project]
     (fixt/with-stub-bridge bridge
@@ -259,7 +244,7 @@
         (is (= "c1" (get-in reply [:data :chatId])))))))
 
 (deftest chat-deleted-forwards-only-the-chat-id
-  (testing "Production code extracts :chatId — verify the wire payload
+  (testing "Production code extracts :chatId -- verify the wire payload
             is the bare id, not the full params map."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
@@ -282,8 +267,6 @@
                                {:chatId "c1" :status "streaming"})
       (let [reply (fixt/last-to-webview-of-type bridge "chat/statusChanged")]
         (is (= "streaming" (get-in reply [:data :status])))))))
-
-;; ── chat/askQuestion request/reply correlation ───────────────────
 
 (deftest ask-question-registers-pending-promise-and-resolves-on-answer
   (testing "Server invokes our `chat/askQuestion` request handler,
@@ -321,14 +304,19 @@
 
 (deftest ask-question-ignores-unknown-request-id
   (testing "answerQuestion with a requestId that was never minted must
-            not throw — the React app can race the host on focus
-            changes (we'd rather drop than crash)."
+            not throw and must not emit any host-side side effect (no
+            outbound to server, no outbound to webview)."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
-        (is (nil?
-             (webview/handle
-              (fixt/to-json-payload {:type "chat/answerQuestion"
-                                     :data {:requestId "bogus"
-                                            :answer "y"}})
-              project))
-            "unknown id is a no-op, return value matches the rest of handle")))))
+        (let [pending @@#'webview/pending-questions]
+          (webview/handle
+           (fixt/to-json-payload {:type "chat/answerQuestion"
+                                  :data {:requestId "bogus"
+                                         :answer "y"}})
+           project)
+          (is (= pending @@#'webview/pending-questions)
+              "pending-questions atom must not be mutated for unknown ids")
+          (is (empty? (fixt/sent-to-server bridge))
+              "no server-bound request or notify")
+          (is (empty? (fixt/sent-to-webview bridge))
+              "no webview-bound message"))))))

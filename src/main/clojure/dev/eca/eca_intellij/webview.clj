@@ -409,7 +409,7 @@
                     wrapper ^VirtualFileWrapper (.save dialog base-dir ^String default-name)]
                 (when wrapper
                   (spit (.getFile wrapper) (:content data) :encoding "UTF-8"))))})
-          (logger/warn "Unkown webview message type:" type)))))
+          (logger/warn "Unknown webview message type:" type)))))
   nil)
 
 (defmethod api/config-updated :default

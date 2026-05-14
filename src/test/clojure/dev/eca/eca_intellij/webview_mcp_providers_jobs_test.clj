@@ -1,18 +1,13 @@
 (ns dev.eca.eca-intellij.webview-mcp-providers-jobs-test
-  "Integration tests for the mcp/*, providers/*, jobs/* branches of
-   `webview/handle` and the matching server-side notification
-   multimethods. These three feature families all share the same
-   `requestId`-echo correlation pattern; tests below pin that shape so
-   a future refactor cannot silently break the React app's reply
-   handlers."
+  "Tests for the mcp/*, providers/*, jobs/* branches of webview/handle.
+   These three families share the same requestId-echo reply pattern;
+   the tests below pin it."
   (:require
    [clojure.test :refer [deftest is testing]]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
    [dev.eca.eca-intellij.test-fixtures :as fixt]
    [dev.eca.eca-intellij.webview :as webview]))
-
-;; ── mcp/* notifications ───────────────────────────────────────────
 
 (deftest mcp-start-server-routes-to-server-as-notify
   (fixt/with-test-project [project]
@@ -81,7 +76,7 @@
           (fixt/to-json-payload {:type "mcp/updateServer"
                                  :data {:name "fs" :requestId "req-42"}})
           project)
-        ;; The branch is a future — give it a moment to ship the
+        ;; The branch is a future -- give it a moment to ship the
         ;; outbound message.
         (loop [i 0]
           (when (and (< i 50)
@@ -92,13 +87,11 @@
           (is (= "req-42" (get-in reply [:data :requestId])))
           (is (true? (get-in reply [:data :ok]))))))))
 
-;; ── tool/serverUpdated → tool/serversUpdated ──────────────────────
-
 (deftest tool-server-updated-merges-into-db-and-forwards-vec
   (testing "Inbound notification updates the per-name MCP server map in
             db.clj, then forwards the *values* (a vector of all known
             servers) to the webview under the plural type
-            `tool/serversUpdated` — the React Tools panel renders the
+            `tool/serversUpdated` -- the React Tools panel renders the
             entire roster on every push."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
@@ -111,8 +104,6 @@
           (is (= #{"fs" "github"} (->> reply :data (map :name) set))))
         (let [stored (db/get-in project [:session :mcp-servers])]
           (is (= #{"fs" "github"} (set (keys stored)))))))))
-
-;; ── providers/* request/reply correlation ────────────────────────
 
 (deftest providers-list-echoes-request-id
   (fixt/with-test-project [project]
@@ -187,8 +178,6 @@
       (let [reply (fixt/last-to-webview-of-type bridge "providers/updated")]
         (is (= [{:id "anthropic" :loggedIn true}]
                (get-in reply [:data :providers])))))))
-
-;; ── jobs/* request/reply correlation ──────────────────────────────
 
 (deftest jobs-list-echoes-request-id
   (fixt/with-test-project [project]

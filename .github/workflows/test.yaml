@@ -6,6 +6,12 @@ on:
     branches:
       - main
 
+# Cancel queued/in-progress runs for the same ref when a new push lands,
+# so rapid-fire commits to a feature branch do not pile up identical CI.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

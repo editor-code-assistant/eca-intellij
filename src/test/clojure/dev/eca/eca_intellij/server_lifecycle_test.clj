@@ -10,8 +10,6 @@
    [dev.eca.eca-intellij.server :as server]
    [dev.eca.eca-intellij.test-fixtures :as fixt]))
 
-;; ── broadcast-status! ─────────────────────────────────────────────
-
 (deftest broadcast-status-fans-out-to-every-registered-listener
   (testing "Each listener registered under :on-status-changed-fns must
             receive (project, status). :webview is the listener wired
@@ -34,50 +32,29 @@
   (fixt/with-test-project [project]
     (is (nil? (#'server/broadcast-status! project :stopped)))))
 
-(deftest broadcast-status-allows-throwing-listener-to-not-poison-siblings
-  (testing "Production uses `run!` which does NOT catch — but the
-            cursor-editor listener and on-status-changed listeners are
-            expected to be tame. Document the current contract: a
-            throwing listener will propagate. If we tighten this later
-            this test must be updated."
+(deftest broadcast-status-throwing-listener-propagates
+  (testing "Current contract: production uses `run!` which does NOT
+            catch. Listeners are expected to be tame (status-bar update,
+            webview send-msg). If we ever want isolation across
+            listeners, broadcast-status! needs a try/catch and this test
+            should flip to assert siblings still fire."
     (fixt/with-test-project [project]
-      (let [hits (atom 0)]
-        (db/assoc-in project [:on-status-changed-fns]
-                     {:throwy (fn [_ _] (throw (ex-info "boom" {})))
-                      :good (fn [_ _] (swap! hits inc))})
-        (try (#'server/broadcast-status! project :running) (catch Throwable _))
-        ;; Listeners iterate via map-vals; one of two orders is possible.
-        ;; In the current `run!` impl the throw stops iteration after
-        ;; whichever listener fired first — both 0 and 1 are valid hits
-        ;; values. Just assert that the broadcast itself does not loop.
-        (is (<= @hits 1))))))
-
-;; ── config/download-server-path ──────────────────────────────────
+      (db/assoc-in project [:on-status-changed-fns]
+                   {:throwy (fn [_ _] (throw (ex-info "boom" {})))})
+      (is (thrown? clojure.lang.ExceptionInfo
+                   (#'server/broadcast-status! project :running))))))
 
 (deftest download-server-path-uses-exe-suffix-on-windows
   (testing "Regression b27d515: on Windows the auto-downloaded server
             must land as `eca.exe`; without the extension the
             existence-check would always miss and we would re-download
             on every IDE start."
-    (let [original (System/getProperty "os.name")]
-      (try
-        (System/setProperty "os.name" "Windows 11")
-        (let [f (config/download-server-path)]
-          (is (= "eca.exe" (.getName f))))
-        (finally
-          (System/setProperty "os.name" (or original "Linux")))))))
+    (with-redefs [config/windows? (constantly true)]
+      (is (= "eca.exe" (.getName (config/download-server-path)))))))
 
 (deftest download-server-path-uses-no-extension-on-other-os
-  (let [original (System/getProperty "os.name")]
-    (try
-      (System/setProperty "os.name" "Linux")
-      (is (= "eca" (.getName (config/download-server-path))))
-      (System/setProperty "os.name" "Mac OS X")
-      (is (= "eca" (.getName (config/download-server-path))))
-      (finally
-        (System/setProperty "os.name" (or original "Linux"))))))
-
-;; ── public status reader ─────────────────────────────────────────
+  (with-redefs [config/windows? (constantly false)]
+    (is (= "eca" (.getName (config/download-server-path))))))
 
 (deftest status-reads-current-db-status
   (fixt/with-test-project [project

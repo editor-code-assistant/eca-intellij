@@ -5,7 +5,7 @@
    here will surprise users switching editors. The 1 MB write cap, the
    trailing-comma + comment handling, and the atomic write pattern are
    all explicit acceptance criteria of the issue (88fca15) that wired
-   the Settings → Global Config tab in the first place."
+   the Settings -> Global Config tab in the first place."
   (:require
    [cheshire.core :as json]
    [clojure.java.io :as io]
@@ -14,28 +14,12 @@
   (:import
    [java.io File]))
 
-(set! *warn-on-reflection* true)
-
-;; ── Path resolution ────────────────────────────────────────────────
-
-(defmacro ^:private with-env [env-map & body]
-  `(let [old# (->> ~env-map keys
-                   (map (fn [k#] [k# (System/getenv k#)]))
-                   (into {}))]
-     ;; System/setenv is JDK-internal; we cannot manipulate process env
-     ;; from a test. Skip env-driven branches that require runtime
-     ;; mutation and only assert pure code paths.
-     ~@body))
-
 (deftest get-global-config-path-respects-xdg-via-classpath-call
   (testing "Smoke: returns *some* File (we cannot mutate env from JVM)."
     (is (instance? File (editor-actions/get-global-config-path)))))
 
-;; ── JSONC strip via valid-jsonc? + write round-trip ───────────────
-;;
-;; The strip helpers are `^:private`; rather than coupling to them,
-;; tests exercise the public `write-global-config` flow which calls
-;; strip → validate → write, then read back to confirm bytes landed.
+;; Tests below exercise the public write/read flow rather than the
+;; private strip helpers directly.
 
 (defn ^:private tmp-config-target ^File []
   (File/createTempFile "eca-config-test-" ".json"))
@@ -81,7 +65,7 @@
 
 (deftest write-preserves-urls-with-double-slashes-inside-strings
   (testing "A bare `//` inside a JSON string must NOT be treated as a
-            line comment — otherwise URLs in config values get
+            line comment -- otherwise URLs in config values get
             mangled. Regression target for the strip-state machine."
     (with-isolated-config target
       (let [src "{ \"webhook\": \"https://example.com/path\" }"
