@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Fix empty Settings → MCPs tab on tool-window reopen (#22). `webview/ready` now replays the cached MCP roster as `tool/serversUpdated`, and `on-initialized` merges into `:session` instead of clobbering it (notifications that race ahead of `initialized` no longer get wiped).
 - Bump `eca-webview`: shrink the welcome-message logo and left-align the welcome text block, while keeping the logo and any markdown heading centered.
 
 ## 0.26.13

@@ -189,6 +189,17 @@
         (handle-server-status-changed (db/get-in project [:status])
                                       project)
         (handle-config-changed project (db/get-in project [:server-config]))
+        ;; Replay the cached MCP server roster. `tool/serverUpdated`
+        ;; notifications from the ECA server are reactive-only -- if the
+        ;; tool window is re-opened (or the user navigates to Settings ->
+        ;; MCPs) after all notifications have already fired, the React
+        ;; Redux slice would otherwise sit empty until the next change.
+        ;; Mirrors the broadcast shape used by tool-server-updated /
+        ;; tool-server-removed so consumers converge through the same code
+        ;; path. `vec` so an empty cache serialises as `[]` instead of
+        ;; `null`, which the React slice cannot iterate over. Closes #22.
+        (send-msg! project {:type "tool/serversUpdated"
+                            :data (vec (vals (db/get-in project [:session :mcp-servers])))})
         ;; send current opened editor if any
         (when-let [editor (current-selected-editor project)]
           (on-focus-changed editor nil))

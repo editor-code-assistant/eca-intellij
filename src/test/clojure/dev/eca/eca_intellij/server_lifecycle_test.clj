@@ -60,3 +60,32 @@
   (fixt/with-test-project [project
                            :initial-db {:status :starting}]
     (is (= :starting (server/status project)))))
+
+(deftest on-initialized-preserves-mcp-servers-cache
+  (testing "Regression: issue #22. Before the fix, on-initialized did
+            `(update-in [:session] (fn [_] {...}))` which wiped any
+            keys populated before `initialized` completed. The ECA
+            server can send `tool/serverUpdated` notifications ahead
+            of the `initialized` reply (especially for cached MCP
+            servers that come up fast), so wiping `:mcp-servers`
+            here was the root cause of the empty Settings -> MCPs
+            tab. on-initialized must MERGE into the existing
+            session, not replace it."
+    (fixt/with-test-project [project
+                             :initial-db {:session
+                                          {:mcp-servers
+                                           {"foo" {:name "foo"
+                                                   :status "running"}}}}]
+      (#'server/on-initialized {:models [{:id "claude"}]
+                                :chat-agents [{:id "agent"}]
+                                :chat-default-agent "agent"
+                                :chat-default-model "claude"
+                                :chat-welcome-message "hi"}
+                               project)
+      (let [session (db/get-in project [:session])]
+        (is (= {"foo" {:name "foo" :status "running"}}
+               (:mcp-servers session))
+            ":mcp-servers populated before initialized MUST survive")
+        (is (= [{:id "claude"}] (:models session)))
+        (is (= "claude" (:chat-selected-model session)))
+        (is (= "hi" (:welcome-message session)))))))

@@ -105,12 +105,20 @@
     (logger/info "Downloaded eca to" dest-path)))
 
 (defn ^:private on-initialized [result project]
-  (db/update-in project [:session] (fn [_]
-                                     {:models (:models result)
-                                      :chat-agents (:chat-agents result)
-                                      :chat-selected-agent (:chat-default-agent result)
-                                      :chat-selected-model (:chat-default-model result)
-                                      :welcome-message (:chat-welcome-message result)})))
+  ;; Merge on top of the existing session map instead of replacing it
+  ;; wholesale -- a wholesale replace silently wipes any keys populated
+  ;; before `initialized` completes (notably `:mcp-servers`, which
+  ;; `webview.clj`'s tool-server-updated defmethod fills in from
+  ;; reactive `tool/serverUpdated` notifications that can race ahead of
+  ;; this callback). Wiping that map then leaves the Settings -> MCPs
+  ;; tab empty after webview/ready replay until the next notification
+  ;; arrives. Closes #22.
+  (db/update-in project [:session]
+                #(merge % {:models (:models result)
+                           :chat-agents (:chat-agents result)
+                           :chat-selected-agent (:chat-default-agent result)
+                           :chat-selected-model (:chat-default-model result)
+                           :welcome-message (:chat-welcome-message result)})))
 
 (defn ^:private env []
   (let [env (EnvironmentUtil/getEnvironmentMap)

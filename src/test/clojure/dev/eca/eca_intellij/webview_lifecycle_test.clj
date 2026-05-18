@@ -73,6 +73,46 @@
           ":webview key in :on-focus-changed-fns is what cursor-editor-listener fans
            out to; missing -> no live editor-focus updates to the chat"))))
 
+(deftest webview-ready-replays-cached-mcp-servers
+  (testing "Regression: issue #22. `tool/serverUpdated` LSP
+            notifications are reactive-only; if the tool window is
+            re-opened (or the user opens Settings -> MCPs) after all
+            notifications have already fired, the React `mcp.servers`
+            slice would otherwise sit empty. `webview/ready` must
+            replay the cached roster as `tool/serversUpdated` so the
+            settings tab is never blank when servers actually exist."
+    (fixt/with-test-project [project
+                             :initial-db {:session
+                                          {:mcp-servers
+                                           {"foo" {:name "foo"
+                                                   :type "mcp"
+                                                   :status "running"
+                                                   :tools []}
+                                            "bar" {:name "bar"
+                                                   :type "mcp"
+                                                   :status "stopped"
+                                                   :tools []}}}}]
+      (fixt/with-stub-bridge bridge
+        (webview/handle (fixt/to-json-payload {:type "webview/ready"}) project)
+        (let [out (fixt/last-to-webview-of-type bridge "tool/serversUpdated")]
+          (is (some? out)
+              "webview/ready MUST emit tool/serversUpdated even with no live notification")
+          (is (= #{"foo" "bar"}
+                 (->> (:data out) (map :name) set))
+              "all cached MCP servers must be replayed"))))))
+
+(deftest webview-ready-emits-empty-mcp-list-when-no-servers
+  (testing "With an empty cache the replay still fires (just with an
+            empty list). This keeps the webview's mcp.servers slice
+            consistent with the host's truth-of-record on every ready
+            handshake and lets the React side clear any stale rows."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (webview/handle (fixt/to-json-payload {:type "webview/ready"}) project)
+        (let [out (fixt/last-to-webview-of-type bridge "tool/serversUpdated")]
+          (is (some? out))
+          (is (= [] (:data out))))))))
+
 (deftest webview-ready-subscribes-log-store-with-replace-semantics
   (testing "Re-delivery of webview/ready (e.g. tool-window re-open) must
             replace the prior :webview log subscriber, not stack a
