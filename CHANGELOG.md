@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: shrink the welcome-message logo and left-align the welcome text block, while keeping the logo and any markdown heading centered.
+
 ## 0.26.13
 
 - Wire `mcp/addServer`, `mcp/removeServer` and `tool/serverRemoved` end-to-end so the inline "+ Add MCP server" form and per-row remove button on the Settings → MCPs tab work in IntelliJ. The two requests are dispatched on a future to keep the JS-query thread responsive; the inbound `tool/serverRemoved` notification dissocs the server from the per-project session map and re-broadcasts the full roster as `tool/serversUpdated` so any consumer that only listens to the full-list message still converges.
