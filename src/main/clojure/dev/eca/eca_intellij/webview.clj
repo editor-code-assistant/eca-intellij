@@ -274,6 +274,16 @@
                                  (send-msg! project {:type "mcp/updateServer"
                                                      :data (merge {:requestId (:requestId data)}
                                                                   result)})))
+          "mcp/addServer" (future
+                            (let [result @(api/request! client [:mcp/addServer data])]
+                              (send-msg! project {:type "mcp/addServer"
+                                                  :data (merge {:requestId (:requestId data)}
+                                                               result)})))
+          "mcp/removeServer" (future
+                               (let [result @(api/request! client [:mcp/removeServer data])]
+                                 (send-msg! project {:type "mcp/removeServer"
+                                                     :data (merge {:requestId (:requestId data)}
+                                                                  result)})))
           "providers/list" (future
                              (let [result @(api/request! client [:providers/list {}])]
                                (send-msg! project {:type "providers/list"
@@ -461,6 +471,16 @@
 (defmethod api/tool-server-updated  :default
   [{:keys [project]} params]
   (db/assoc-in project [:session :mcp-servers (:name params)] params)
+  (send-msg! project {:type "tool/serversUpdated"
+                      :data (vals (db/get-in project [:session :mcp-servers]))}))
+
+(defmethod api/tool-server-removed :default
+  [{:keys [project]} params]
+  (db/update-in project [:session :mcp-servers] #(dissoc % (:name params)))
+  (send-msg! project {:type "tool/serverRemoved"
+                      :data params})
+  ;; Defensive re-broadcast so consumers that only listen to the
+  ;; full-list message still converge.
   (send-msg! project {:type "tool/serversUpdated"
                       :data (vals (db/get-in project [:session :mcp-servers]))}))
 

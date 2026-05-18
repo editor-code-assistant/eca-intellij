@@ -105,6 +105,73 @@
         (let [stored (db/get-in project [:session :mcp-servers])]
           (is (= #{"fs" "github"} (set (keys stored)))))))))
 
+(deftest mcp-add-server-is-request-and-echoes-request-id
+  (testing "mcp/addServer is a request (wrapped in a future) and MUST
+            echo the requestId back to the webview so the React form's
+            response handler can correlate and surface any inline error."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (fixt/stub-reply! bridge :mcp/addServer {:server {:name "fs" :status "starting"}})
+        (webview/handle
+          (fixt/to-json-payload {:type "mcp/addServer"
+                                 :data {:name "fs"
+                                        :command "npx"
+                                        :args ["mcp-fs"]
+                                        :scope "global"
+                                        :requestId "add-1"}})
+          project)
+        (loop [i 0]
+          (when (and (< i 50)
+                     (empty? (fixt/webview-of-type bridge "mcp/addServer")))
+            (Thread/sleep 10)
+            (recur (inc i))))
+        (let [reply (fixt/last-to-webview-of-type bridge "mcp/addServer")]
+          (is (= "add-1" (get-in reply [:data :requestId])))
+          (is (= "fs" (get-in reply [:data :server :name]))))))))
+
+(deftest mcp-remove-server-is-request-and-echoes-request-id
+  (testing "mcp/removeServer is a request and MUST echo the requestId
+            back. The actual row removal in the webview is driven by
+            the subsequent `tool/serverRemoved` notification."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (fixt/stub-reply! bridge :mcp/removeServer {:name "fs" :removed true})
+        (webview/handle
+          (fixt/to-json-payload {:type "mcp/removeServer"
+                                 :data {:name "fs" :requestId "rm-1"}})
+          project)
+        (loop [i 0]
+          (when (and (< i 50)
+                     (empty? (fixt/webview-of-type bridge "mcp/removeServer")))
+            (Thread/sleep 10)
+            (recur (inc i))))
+        (let [reply (fixt/last-to-webview-of-type bridge "mcp/removeServer")]
+          (is (= "rm-1" (get-in reply [:data :requestId])))
+          (is (true? (get-in reply [:data :removed]))))))))
+
+(deftest tool-server-removed-dissocs-from-db-and-broadcasts-both-messages
+  (testing "Inbound `tool/serverRemoved` notification dissocs the named
+            server from the per-name session map AND sends two messages
+            to the webview: the singular `tool/serverRemoved` carrying
+            just the name, plus a defensive `tool/serversUpdated`
+            re-broadcast of the remaining roster so consumers that only
+            listen to the full-list message still converge."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        ;; Seed two servers so we can verify only one is dropped.
+        (api/tool-server-updated {:project project}
+                                 {:name "fs" :status "running"})
+        (api/tool-server-updated {:project project}
+                                 {:name "github" :status "running"})
+        (api/tool-server-removed {:project project} {:name "fs"})
+        (let [removed-reply (fixt/last-to-webview-of-type bridge "tool/serverRemoved")
+              updated-reply (fixt/last-to-webview-of-type bridge "tool/serversUpdated")]
+          (is (= "fs" (get-in removed-reply [:data :name])))
+          (is (= 1 (count (:data updated-reply))))
+          (is (= "github" (-> updated-reply :data first :name))))
+        (let [stored (db/get-in project [:session :mcp-servers])]
+          (is (= #{"github"} (set (keys stored)))))))))
+
 (deftest providers-list-echoes-request-id
   (fixt/with-test-project [project]
     (fixt/with-stub-bridge bridge

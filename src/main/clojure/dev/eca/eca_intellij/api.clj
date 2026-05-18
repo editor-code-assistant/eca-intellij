@@ -31,6 +31,7 @@
 (defmulti chat-opened (constantly :default))
 (defmulti chat-status-changed (constantly :default))
 (defmulti tool-server-updated (constantly :default))
+(defmulti tool-server-removed (constantly :default))
 (defmulti providers-updated (constantly :default))
 (defmulti jobs-updated (constantly :default))
 (defmulti chat-ask-question (constantly :default))
@@ -199,6 +200,7 @@
       "chat/opened" (chat-opened context params)
       "chat/statusChanged" (chat-status-changed context params)
       "tool/serverUpdated" (tool-server-updated context params)
+      "tool/serverRemoved" (tool-server-removed context params)
       "providers/updated" (providers-updated context params)
       "jobs/updated" (jobs-updated context params)
 
