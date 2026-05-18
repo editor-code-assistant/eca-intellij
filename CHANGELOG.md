@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.13
+
 - Wire `mcp/addServer`, `mcp/removeServer` and `tool/serverRemoved` end-to-end so the inline "+ Add MCP server" form and per-row remove button on the Settings → MCPs tab work in IntelliJ. The two requests are dispatched on a future to keep the JS-query thread responsive; the inbound `tool/serverRemoved` notification dissocs the server from the per-project session map and re-broadcasts the full roster as `tool/serversUpdated` so any consumer that only listens to the full-list message still converges.
 - Soften chat success-green on Light LAFs (MCP running indicator, approve button, MCP-resource icon). `JBColor/GREEN` is `#00FF00` on Light; now uses `#3C9F40` (Light) / `#629655` (Dark).
 - Bump `eca-webview`: switch chat/settings hover backgrounds to opacity-only across 16 SCSS files. `var(--eca-base-hover)` was wired to `Borders.ContrastBorderColor`, which is dark on Light LAFs and produced a black block on hover.
