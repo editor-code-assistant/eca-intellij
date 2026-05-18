@@ -25,6 +25,7 @@
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
+   [java.awt Color]
    [java.util Base64]))
 
 (set! *warn-on-reflection* true)
@@ -37,6 +38,16 @@
 (defn ^:private rgba ^String [^java.awt.Color c alpha]
   (format "rgba(%d, %d, %d, %.2f)"
           (.getRed c) (.getGreen c) (.getBlue c) (double alpha)))
+
+;; `JBColor/GREEN` resolves to `java.awt.Color.green` = `#00FF00` (CRT-pure
+;; saturated green) on every Light LAF. Used as a foreground (MCP "running"
+;; status, MCP-resource context icon) or as a background (approve action
+;; button) against the near-white chat surface, that is the "heavy / glaring"
+;; effect the user pushed back on. The Dark-LAF value `#629655` baked into
+;; `JBColor/GREEN` is already nicely muted, so we keep it and only soften the
+;; Light side to a forest/sea-green that still reads clearly as "success".
+(def ^:private success-green
+  (JBColor. (Color. 0x3C9F40) (Color. 0x629655)))
 
 (defn ^:private theme-css-map []
   (let [global-scheme (.getGlobalScheme (EditorColorsManager/getInstance))]
@@ -73,13 +84,13 @@
 
      "accent-fg" (hex (JBColor/namedColor "Hyperlink.linkColor"))
 
-     "success-fg" (hex JBColor/GREEN)
+     "success-fg" (hex success-green)
      "warning-fg" (hex (JBColor/namedColor "Component.warningFocusColor"))
      "approval-fg" (hex JBColor/ORANGE)
      "error-fg" (hex (JBColor/namedColor "Component.errorFocusColor"))
      "warning-message-fg" (hex (JBColor/namedColor "Component.warningFocusColor"))
 
-     "confirm-action-bg" (hex JBColor/GREEN)
+     "confirm-action-bg" (hex success-green)
      "confirm-action-fg" (hex (JBColor/namedColor "Button.default.foreground"))
 
      ;; Diff highlights need translucent fills so the underlying code stays readable.
@@ -96,7 +107,7 @@
      "context-web-fg" (hex JBColor/CYAN)
      "context-repo-map-fg" (hex JBColor/MAGENTA)
      "context-cursor-fg" (hex (JBColor/namedColor "Editor.foreground"))
-     "context-mcp-resource-fg" (hex JBColor/GREEN)}))
+     "context-mcp-resource-fg" (hex success-green)}))
 
 (defn theme-css ^String []
   (str ":root {\n"
