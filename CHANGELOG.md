@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.26.16
+
 - Bump `eca-webview`: color the chat-subheader MCP `requires-auth` count in yellow (matching `starting`) so servers awaiting authentication are visible at a glance.
 
 ## 0.26.15
