@@ -183,7 +183,12 @@
 
 (defn ^:private create-webview ^JBCefBrowser [^Project project url]
   (let [browser (-> (JBCefBrowser/createBuilder)
-                    (.setOffScreenRendering true) ;; TODO move to config
+                    ;; Heavyweight (native) rendering. OSR (true) intermittently fails to
+                    ;; invalidate freed regions when a large React subtree is replaced in
+                    ;; one commit (e.g. switching Settings tabs while LogsTab holds
+                    ;; thousands of entries), leaving the prior tab's pixels visible
+                    ;; behind the new one until another event triggers a repaint (#21).
+                    (.setOffScreenRendering false)
                     (.build))
         ;; Per-client JS query pool size. We previously bumped this via a
         ;; global `System.setProperty "ide.browser.jcef.jsQueryPoolSize"` inside

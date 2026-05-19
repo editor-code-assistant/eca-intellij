@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix intermittent stale paint when switching Settings tabs (#21) where the previous tab body stayed visible behind the new one. The `JBCefBrowser` was built with `setOffScreenRendering true`; CEF's OSR pipeline occasionally failed to invalidate the freed region when a large React subtree (e.g. `LogsTab`'s up-to-5000-entry buffer) was unmounted and a sibling mounted in the same commit, leaving prior pixels onscreen until the next paint event. Switched to heavyweight rendering.
+
 ## 0.26.14
 
 - Fix empty Settings → MCPs tab on tool-window reopen (#22). `webview/ready` now replays the cached MCP roster as `tool/serversUpdated`, and `on-initialized` merges into `:session` instead of clobbering it (notifications that race ahead of `initialized` no longer get wiped).
