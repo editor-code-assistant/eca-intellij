@@ -320,3 +320,116 @@
               "no server-bound request or notify")
           (is (empty? (fixt/sent-to-webview bridge))
               "no webview-bound message"))))))
+
+(deftest chat-list-forwards-server-result-and-echoes-request-id
+  (testing "Resume-picker support: chat/list is a request wrapped in a
+            future. The host MUST round-trip :requestId so the
+            webview's webviewSendAndGet can resolve, and the :chats
+            vector MUST pass through unchanged so each entry's
+            {id, title, status, messageCount, ...} survives the trip
+            to the React picker."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (fixt/stub-reply! bridge :chat/list
+                          {:chats [{:id "c1"
+                                    :title "First chat"
+                                    :status "idle"
+                                    :message-count 4
+                                    :updated-at 1700000000000
+                                    :model "claude"}
+                                   {:id "c2"
+                                    :title "Second chat"
+                                    :status "idle"
+                                    :message-count 1}]})
+        (webview/handle
+          (fixt/to-json-payload {:type "chat/list"
+                                 :data {:requestId "lst-1"
+                                        :limit 100
+                                        :sortBy "updatedAt"}})
+          project)
+        (loop [i 0]
+          (when (and (< i 50)
+                     (empty? (fixt/webview-of-type bridge "chat/list")))
+            (Thread/sleep 10)
+            (recur (inc i))))
+        ;; Server-bound body: confirm we pass `:limit` and `:sortBy`
+        ;; through. lsp4clj camelCases on the wire so writing
+        ;; `:sortBy` (not `:sort-by`) is fine — we just have to be
+        ;; consistent with the server's expected key shape.
+        (let [[kind _ body] (fixt/last-to-server-of bridge :chat/list)]
+          (is (= :request kind))
+          (is (= 100 (:limit body)))
+          (is (= "updatedAt" (:sortBy body))))
+        (let [reply (fixt/last-to-webview-of-type bridge "chat/list")]
+          (is (= "lst-1" (get-in reply [:data :requestId])))
+          (is (= 2 (count (get-in reply [:data :chats]))))
+          (is (= "c1" (-> reply :data :chats first :id)))
+          (is (= 4 (-> reply :data :chats first :message-count))
+              "kebab `:message-count` survives the forward; `send-msg!`
+               handles the camel-case conversion on the wire."))))))
+
+(deftest chat-open-forwards-found-and-echoes-request-id
+  (testing "Resume-picker support: chat/open is a request wrapped in a
+            future. The host MUST round-trip :requestId and pass the
+            server's `{:found? bool :chat-id ... :title ...}` shape
+            verbatim to the webview — the React thunk reads `found?`
+            literally because `csk/->camelCaseString` preserves the
+            trailing `?`."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (fixt/stub-reply! bridge :chat/open
+                          {:found? true
+                           :chat-id "c1"
+                           :title "Recovered chat"})
+        (webview/handle
+          (fixt/to-json-payload {:type "chat/open"
+                                 :data {:requestId "opn-1"
+                                        :chatId "c1"}})
+          project)
+        (loop [i 0]
+          (when (and (< i 50)
+                     (empty? (fixt/webview-of-type bridge "chat/open")))
+            (Thread/sleep 10)
+            (recur (inc i))))
+        (let [[kind _ body] (fixt/last-to-server-of bridge :chat/open)]
+          (is (= :request kind))
+          (is (= "c1" (:chatId body))
+              ":chatId stays camelCase on the server-facing body for
+               consistency with the existing chat/* request shape."))
+        (let [reply (fixt/last-to-webview-of-type bridge "chat/open")]
+          (is (= "opn-1" (get-in reply [:data :requestId])))
+          (is (true? (get-in reply [:data :found?]))
+              "`:found?` literal survives the forward — camel-cased to
+               \"found?\" on the wire, which is what the webview reads.")
+          (is (= "c1" (get-in reply [:data :chat-id])))
+          (is (= "Recovered chat" (get-in reply [:data :title]))))))))
+
+(deftest chat-list-surfaces-error-envelope-when-server-returns-error
+  (testing "If the server returns an `:error` keyed response (rare —
+            list-chats has no error path in practice, defensive only),
+            the host MUST wrap it into the standard
+            `{:requestId :error {:code :message}}` envelope so the
+            picker's `.catch(console.error)` path can surface it
+            instead of treating the empty/malformed reply as success."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (fixt/stub-reply! bridge :chat/list
+                          {:error {:code -32603 :message "kaboom"}})
+        (webview/handle
+          (fixt/to-json-payload {:type "chat/list"
+                                 :data {:requestId "lst-err-1"}})
+          project)
+        (loop [i 0]
+          (when (and (< i 50)
+                     (empty? (fixt/webview-of-type bridge "chat/list")))
+            (Thread/sleep 10)
+            (recur (inc i))))
+        (let [reply (fixt/last-to-webview-of-type bridge "chat/list")]
+          (is (= "lst-err-1" (get-in reply [:data :requestId])))
+          (is (= "rpc_error" (get-in reply [:data :error :code]))
+              "Host-side error code is normalized to `rpc_error` — we
+               don't propagate the raw LSP code so the webview has a
+               stable string to match against.")
+          (is (= "kaboom" (get-in reply [:data :error :message])))
+          (is (nil? (get-in reply [:data :chats]))
+              "Error envelope MUST NOT carry partial result fields."))))))

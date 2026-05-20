@@ -274,6 +274,48 @@
                                            nil)]
                             (when includes
                               @(api/request! client [:chat/rollback (assoc data :includes includes)])))
+          ;; Resume-picker support. The webview asks for the list of
+          ;; persisted chats; on click of a row it sends `chat/open`
+          ;; which causes the server to emit `chat/cleared` →
+          ;; `chat/opened` → N × `chat/contentReceived` → `config/updated`
+          ;; BEFORE returning the open response. Those notifications
+          ;; are already forwarded by the `defmethod` blocks below /
+          ;; in `api.clj`, so the two branches here only need to round-
+          ;; trip the request and its `{:found? bool ...}` response.
+          ;; Both wrap in `try/catch` and check the result for `:error`
+          ;; so the webview sees a `{:requestId ... :error {...}}`
+          ;; envelope on failure rather than a silently-dropped reply.
+          "chat/list" (future
+                        (try
+                          (let [result @(api/request! client [:chat/list {:limit (:limit data)
+                                                                          :sortBy (:sortBy data)}])]
+                            (if-let [err (:error result)]
+                              (send-msg! project {:type "chat/list"
+                                                  :data {:requestId (:requestId data)
+                                                         :error {:code "rpc_error"
+                                                                 :message (or (:message err) "RPC error")}}})
+                              (send-msg! project {:type "chat/list"
+                                                  :data (merge {:requestId (:requestId data)} result)})))
+                          (catch Throwable t
+                            (send-msg! project {:type "chat/list"
+                                                :data {:requestId (:requestId data)
+                                                       :error {:code "rpc_error"
+                                                               :message (or (.getMessage t) "Unknown error")}}}))))
+          "chat/open" (future
+                        (try
+                          (let [result @(api/request! client [:chat/open {:chatId (:chatId data)}])]
+                            (if-let [err (:error result)]
+                              (send-msg! project {:type "chat/open"
+                                                  :data {:requestId (:requestId data)
+                                                         :error {:code "rpc_error"
+                                                                 :message (or (:message err) "RPC error")}}})
+                              (send-msg! project {:type "chat/open"
+                                                  :data (merge {:requestId (:requestId data)} result)})))
+                          (catch Throwable t
+                            (send-msg! project {:type "chat/open"
+                                                :data {:requestId (:requestId data)
+                                                       :error {:code "rpc_error"
+                                                               :message (or (.getMessage t) "Unknown error")}}}))))
           "mcp/startServer" (api/notify! client [:mcp/startServer data])
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
           "mcp/connectServer" (api/notify! client [:mcp/connectServer data])

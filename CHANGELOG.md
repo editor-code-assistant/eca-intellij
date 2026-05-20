@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Forward `chat/list` and `chat/open` requests to the eca server so the embedded webview's resume-chat picker can list and open persisted chats.
+
 ## 0.26.16
 
 - Bump `eca-webview`: color the chat-subheader MCP `requires-auth` count in yellow (matching `starting`) so servers awaiting authentication are visible at a glance.
