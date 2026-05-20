@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.27.0
+
 - Forward `chat/list` and `chat/open` requests to the eca server so the embedded webview's resume-chat picker can list and open persisted chats.
 
 ## 0.26.16
