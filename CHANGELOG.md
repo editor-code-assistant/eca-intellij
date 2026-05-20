@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: make the chat-resume picker readable on Light LAFs, and fix a TypeError when `chat/selectChat` arrives before the chat slot exists in the webview.
+
 ## 0.27.0
 
 - Forward `chat/list` and `chat/open` requests to the eca server so the embedded webview's resume-chat picker can list and open persisted chats.
