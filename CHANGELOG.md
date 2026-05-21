@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.27.2
+
 - Bump `eca-webview`: keep the clicked collapsible header pinned to its on-click position during the open/close animation so users can read the block from its start.
 
 ## 0.27.1
