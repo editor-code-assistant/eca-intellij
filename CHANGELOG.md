@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: keep the clicked collapsible header pinned to its on-click position during the open/close animation so users can read the block from its start.
+
 ## 0.27.1
 
 - Bump `eca-webview`: make the chat-resume picker readable on Light LAFs, and fix a TypeError when `chat/selectChat` arrives before the chat slot exists in the webview.
