@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: add a chat context-usage bar broken down by category, with a swatch legend on hover and click to run /context.
+
 ## 0.27.2
 
 - Bump `eca-webview`: keep the clicked collapsible header pinned to its on-click position during the open/close animation so users can read the block from its start.
