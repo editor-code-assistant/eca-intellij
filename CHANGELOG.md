@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.27.3
+
 - Bump `eca-webview`: add a chat context-usage bar broken down by category, with a swatch legend on hover and click to run /context.
 
 ## 0.27.2
