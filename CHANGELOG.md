@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Fix server download and lifecycle: verify sha256, install atomically, timeout initialize, allow stop/restart of stuck servers, re-download after macOS SIGKILL.
+- Bump `eca-webview`: show a distinct stopped server state instead of the Starting label.
+
 ## 0.27.3
 
 - Bump `eca-webview`: add a chat context-usage bar broken down by category, with a swatch legend on hover and click to run /context.

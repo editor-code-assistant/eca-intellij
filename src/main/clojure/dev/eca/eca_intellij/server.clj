@@ -15,7 +15,10 @@
    [com.intellij.openapi.application ApplicationInfo]
    [com.intellij.openapi.project Project]
    [com.intellij.util EnvironmentUtil]
-   [java.io File]
+   [java.io File InputStream]
+   [java.math BigInteger]
+   [java.nio.file CopyOption Files StandardCopyOption]
+   [java.security MessageDigest]
    [java.util.zip ZipInputStream]))
 
 (set! *warn-on-reflection* true)
@@ -84,25 +87,100 @@
           (clojure.java.io/copy stream dest-file))
         (recur (.getNextEntry stream))))))
 
+(defn ^:private sha256-hex [^File file]
+  (let [digest (MessageDigest/getInstance "SHA-256")
+        buffer (byte-array 8192)]
+    (with-open [^InputStream in (io/input-stream file)]
+      (loop []
+        (let [n (.read in buffer)]
+          (when-not (neg? n)
+            (when (pos? n)
+              (.update digest buffer 0 n))
+            (recur)))))
+    (format "%064x" (BigInteger. 1 (.digest digest)))))
+
+(defn ^:private expected-sha256
+  "Fetches the sha256 digest published alongside the release artifact
+   (`<artifact-uri>.sha256`). Returns nil when unavailable or malformed so
+   releases without checksums still install."
+  [artifact-uri]
+  (try
+    (let [sha (some-> (slurp (str artifact-uri ".sha256"))
+                      string/trim
+                      (string/split #"\s+")
+                      first
+                      string/lower-case)]
+      (if (and sha (re-matches #"[0-9a-f]{64}" sha))
+        sha
+        (do (logger/warn "Unexpected content in checksum file for" artifact-uri)
+            nil)))
+    (catch Exception e
+      (logger/warn "Could not fetch checksum for" artifact-uri ":" (.getMessage e))
+      nil)))
+
+(defn ^:private atomic-move! [^File source ^File dest]
+  (try
+    (Files/move (.toPath source) (.toPath dest)
+                (into-array CopyOption [StandardCopyOption/ATOMIC_MOVE]))
+    (catch java.io.IOException _
+      ;; Windows can refuse to atomically replace an existing/locked file.
+      (io/delete-file dest true)
+      (Files/move (.toPath source) (.toPath dest)
+                  (into-array CopyOption [StandardCopyOption/REPLACE_EXISTING])))))
+
 (defn ^:private download-server! [project indicator ^File download-path ^File server-version-path latest-version]
   (tasks/set-progress indicator "ECA: Downloading")
   (let [platform (os-name)
         arch (os-arch)
         artifact-name (get-in artifacts [platform arch])
         uri (format download-artifact-uri latest-version artifact-name)
-        dest-server-file download-path
-        dest-path (.getCanonicalPath dest-server-file)]
+        dest-path (.getCanonicalPath download-path)
+        zip-temp (io/file (str dest-path ".zip.tmp"))
+        binary-temp (io/file (str dest-path ".tmp"))]
     (logger/info "Downloading eca from" uri)
-    (when (.exists dest-server-file)
-      (io/delete-file dest-server-file true))
-    (unzip-file (io/input-stream uri) dest-server-file)
-    (doto (io/file dest-server-file)
-      (.setWritable true)
-      (.setReadable true)
-      (.setExecutable true))
-    (spit server-version-path latest-version)
-    (db/assoc-in project [:downloaded-server-path] dest-path)
-    (logger/info "Downloaded eca to" dest-path)))
+    (try
+      ;; Download to disk first so the zip can be checksum-verified before
+      ;; anything is extracted or installed.
+      (with-open [in (io/input-stream uri)
+                  out (io/output-stream zip-temp)]
+        (io/copy in out))
+      (when-let [expected (expected-sha256 uri)]
+        (let [actual (sha256-hex zip-temp)]
+          (if (= expected actual)
+            (logger/info "Checksum OK for" artifact-name)
+            (throw (ex-info (format "Checksum mismatch for %s (expected %s, got %s), download is corrupted"
+                                    artifact-name expected actual)
+                            {:uri uri})))))
+      (unzip-file zip-temp binary-temp)
+      (doto binary-temp
+        (.setWritable true)
+        (.setReadable true)
+        (.setExecutable true))
+      ;; Atomic install: a partially written binary must never land on the
+      ;; final path, which offline starts reuse blindly.
+      (atomic-move! binary-temp download-path)
+      (spit server-version-path latest-version)
+      (db/assoc-in project [:downloaded-server-path] dest-path)
+      (logger/info "Downloaded eca to" dest-path)
+      (finally
+        (io/delete-file zip-temp true)
+        (io/delete-file binary-temp true)))))
+
+(def ^:private initialize-timeout-ms 60000)
+
+(defn ^:private process-exit-code [process]
+  (try
+    (.exitValue ^Process (:proc process))
+    (catch Exception _ nil)))
+
+(defn ^:private invalidate-downloaded-server!
+  "Deletes the downloaded server binary and its version marker so the next
+   start re-downloads a fresh copy. Used when the cached binary proves
+   unusable at runtime (e.g. SIGKILLed by macOS for a broken code
+   signature); retrying the same file would fail identically forever."
+  []
+  (io/delete-file (config/download-server-path) true)
+  (io/delete-file (config/download-server-version-path) true))
 
 (defn ^:private on-initialized [result project]
   ;; Merge on top of the existing session map instead of replacing it
@@ -183,22 +261,46 @@
                                                                     :version (str (.getBuild (ApplicationInfo/getInstance)))}
                                                       :capabilities client-capabilities
                                                       :workspace-folders [{:name (.getName project)
-                                                                           :uri (str (.toURI (io/file (.getBasePath project))))}]}])]
+                                                                           :uri (str (.toURI (io/file (.getBasePath project))))}]}])
+          custom-server? (some? (db/get-in project [:settings :server-path]))
+          max-tries (quot initialize-timeout-ms 500)]
       (loop [count 0]
         (Thread/sleep 500)
         (cond
-          (and (not (realized? request-initiatilize))
-               (not (p/alive? process)))
-          (notification/show-notification! {:project project
-                                            :type :error
-                                            :title "ECA process error"
-                                            :message "Check server logs via 'ECA: Show server logs' action"})
+          ;; Checked before `realized?`: a response followed by process death
+          ;; must not count as a healthy start, and the old realized+alive
+          ;; check looped forever in that state.
+          (not (p/alive? process))
+          (let [exit-code (process-exit-code process)]
+            (when (and (identical? :macos (os-name))
+                       (= 137 exit-code)
+                       (not custom-server?))
+              ;; SIGKILL on macOS is the fingerprint of a binary failing
+              ;; code-signature validation (e.g. corrupted download).
+              (logger/info "Server SIGKILLed, invalidating downloaded server so the next start re-downloads it")
+              (invalidate-downloaded-server!))
+            (notification/show-notification! {:project project
+                                              :type :error
+                                              :title "ECA process error"
+                                              :message (str "Server exited during startup (exit code " exit-code "). "
+                                                            "Check server logs via 'ECA: Show server logs' action")})
+            false)
 
-          (and (realized? request-initiatilize)
-               (p/alive? process))
+          (realized? request-initiatilize)
           (do (api/notify! client [:initialized {}])
               (db/assoc-in project [:client] client)
-              (on-initialized (deref request-initiatilize) project))
+              (on-initialized (deref request-initiatilize) project)
+              true)
+
+          (>= count max-tries)
+          (do (p/destroy process)
+              (notification/show-notification! {:project project
+                                                :type :error
+                                                :title "ECA initialize timeout"
+                                                :message (str "Server did not answer initialize within "
+                                                              (quot initialize-timeout-ms 1000)
+                                                              "s. Check server logs via 'ECA: Show server logs' action")})
+              false)
 
           :else
           (do
@@ -206,53 +308,80 @@
             (recur (inc count))))))))
 
 (defn start! [^Project project]
-  (db/assoc-in project [:status] :starting)
-  (broadcast-status! project :starting)
-  (tasks/run-background-task!
-   project
-   "ECA startup"
-   (fn [indicator]
-     (ClojureClassLoader/bind)
-     (let [download-path (config/download-server-path)
-           server-version-path (config/download-server-version-path)
-           latest-version* (delay (try (string/trim (slurp latest-version-uri)) (catch Exception _ nil)))
-           custom-server-path (db/get-in project [:settings :server-path])]
-       (cond
-         custom-server-path
-         (spawn-server! project indicator custom-server-path)
+  (if (contains? #{:starting :running} (db/get-in project [:status]))
+    (logger/info "ECA server already starting/running, ignoring start request")
+    (do
+      (db/assoc-in project [:status] :starting)
+      (broadcast-status! project :starting)
+      (tasks/run-background-task!
+       project
+       "ECA startup"
+       (fn [indicator]
+         (ClojureClassLoader/bind)
+         (let [download-path (config/download-server-path)
+               server-version-path (config/download-server-version-path)
+               latest-version* (delay (try (string/trim (slurp latest-version-uri)) (catch Exception _ nil)))
+               custom-server-path (db/get-in project [:settings :server-path])
+               started? (try
+                          (cond
+                            custom-server-path
+                            (spawn-server! project indicator custom-server-path)
 
-         (and (.exists download-path)
-              (or (not @latest-version*) ;; on network connection issues we use any downloaded server
-                  (= (try (slurp server-version-path) (catch Exception _ :error-checking-local-version))
-                     @latest-version*)))
-         (spawn-server! project indicator download-path)
+                            (and (.exists download-path)
+                                 (or (not @latest-version*) ;; on network connection issues we use any downloaded server
+                                     (= (try (slurp server-version-path) (catch Exception _ :error-checking-local-version))
+                                        @latest-version*)))
+                            (spawn-server! project indicator download-path)
 
-         @latest-version*
-         (do (download-server! project indicator download-path server-version-path @latest-version*)
-             (spawn-server! project indicator download-path))
+                            @latest-version*
+                            (do (download-server! project indicator download-path server-version-path @latest-version*)
+                                (spawn-server! project indicator download-path))
 
-         :else
-         (notification/show-notification! {:project project
-                                           :type :error
-                                           :title "ECA download error"
-                                           :message "There is no server downloaded and there was a network issue trying to download the latest server"}))
-
-       (db/assoc-in project [:status] :running)
-       (broadcast-status! project :running)
-        ;; For race conditions when server starts too fast
-        ;; and other places that listen didn't setup yet
-       (future
-         (Thread/sleep 1000)
-         (broadcast-status! project :running))
-       (logger/info "Initialized ECA"))))
+                            :else
+                            (do (notification/show-notification! {:project project
+                                                                  :type :error
+                                                                  :title "ECA download error"
+                                                                  :message "There is no server downloaded and there was a network issue trying to download the latest server"})
+                                false))
+                          (catch Exception e
+                            (logger/error "Error starting ECA server:" e)
+                            (notification/show-notification! {:project project
+                                                              :type :error
+                                                              :title "ECA start error"
+                                                              :message (or (ex-message e) (str e))})
+                            false))]
+           (if started?
+             (do
+               (db/assoc-in project [:status] :running)
+               (broadcast-status! project :running)
+               ;; For race conditions when server starts too fast
+               ;; and other places that listen didn't setup yet
+               (future
+                 (Thread/sleep 1000)
+                 (broadcast-status! project :running))
+               (logger/info "Initialized ECA"))
+             ;; Status must reflect reality: the old code broadcast :running
+             ;; unconditionally, showing a healthy UI over a dead server.
+             (do
+               (db/assoc-in project [:status] :failed)
+               (broadcast-status! project :failed))))))))
   true)
 
 (defn shutdown! [^Project project]
-  (when-let [client (api/connected-client project)]
-    (db/assoc-in project [:status] :stopped)
-    @(api/request! client [:shutdown {}])
-    (api/notify! client [:exit {}])
-    (clean-up-server project)))
+  ;; Deliberately not gated on :running: a stuck-starting or failed server
+  ;; must still be stoppable (the old api/connected-client gate made
+  ;; stop/restart a no-op exactly when users needed it, and the restart
+  ;; action then spawned a second process next to the orphan).
+  (when-let [client (db/get-in project [:client])]
+    (try
+      ;; Bounded graceful shutdown: a dead server never answers and an
+      ;; unbounded deref would hang the restart action forever.
+      (when (identical? ::timeout (deref (api/request! client [:shutdown {}]) 3000 ::timeout))
+        (logger/warn "Timed out waiting for server shutdown response"))
+      (api/notify! client [:exit {}])
+      (catch Exception e
+        (logger/warn "Error requesting server shutdown:" (.getMessage e)))))
+  (clean-up-server project))
 
 (defn status [^Project project]
   (db/get-in project [:status]))

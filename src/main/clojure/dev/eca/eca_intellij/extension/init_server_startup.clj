@@ -14,7 +14,10 @@
 (def-extension InitServerStartup []
   ProjectActivity
   (execute [_this ^Project project ^CoroutineScope _]
-    (when-not (contains? #{:connected :connecting}
+    ;; :connected/:connecting were never real statuses (server.clj uses
+    ;; :starting/:running), so this guard was dead code; start! also
+    ;; guards re-entry itself now.
+    (when-not (contains? #{:starting :running}
                          (server/status project))
       (server/start! project))
     (db/assoc-in project [:on-stderr-log-updated-fns :editor-log] (fn [] (server-logs/update-logs! project)))))
