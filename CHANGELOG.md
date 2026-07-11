@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.27.4
+
 - Fix server download and lifecycle: verify sha256, install atomically, timeout initialize, allow stop/restart of stuck servers, re-download after macOS SIGKILL.
 - Bump `eca-webview`: show a distinct stopped server state instead of the Starting label.
 
