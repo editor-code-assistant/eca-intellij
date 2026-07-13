@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.0
+
 - Bump `eca-webview`: show shell command breakdown with remember state in tool call approvals; Accept and remember lists the command keys it would newly save.
 
 ## 0.27.4
