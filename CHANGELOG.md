@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: show shell command breakdown with remember state in tool call approvals; Accept and remember lists the command keys it would newly save.
+
 ## 0.27.4
 
 - Fix server download and lifecycle: verify sha256, install atomically, timeout initialize, allow stop/restart of stuck servers, re-download after macOS SIGKILL.
