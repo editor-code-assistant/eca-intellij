@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.1
+
 - Bump `eca-webview`: fix Windows path display (relative labels, basenames, non-ASCII decoding) and CRLF diffs in tool calls.
 
 ## 0.28.0
