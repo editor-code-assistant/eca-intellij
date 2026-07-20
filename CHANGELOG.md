@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: fix Windows path display (relative labels, basenames, non-ASCII decoding) and CRLF diffs in tool calls.
+
 ## 0.28.0
 
 - Bump `eca-webview`: show shell command breakdown with remember state in tool call approvals; Accept and remember lists the command keys it would newly save.
