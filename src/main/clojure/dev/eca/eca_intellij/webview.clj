@@ -246,6 +246,7 @@
           "chat/toolCallReject" (api/notify! client [:chat/toolCallReject data])
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
           "chat/promptSteer" (api/notify! client [:chat/promptSteer data])
+          "chat/promptSteerRemove" (api/notify! client [:chat/promptSteerRemove data])
           "chat/update" @(api/request! client [:chat/update {:chatId (:chatId data)
                                                                 :title (:title data)
                                                                 :trust (:trust data)}])

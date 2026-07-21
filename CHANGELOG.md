@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: chat UI fixes (duplicate flags, Thinking stuck after stop, animation overshoot, rollback flicker, message actions) and steering message remove/edit.
+
 ## 0.28.1
 
 - Bump `eca-webview`: fix Windows path display (relative labels, basenames, non-ASCII decoding) and CRLF diffs in tool calls.
