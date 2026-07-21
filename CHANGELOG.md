@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.2
+
 - Bump `eca-webview`: chat UI fixes (duplicate flags, Thinking stuck after stop, animation overshoot, rollback flicker, message actions) and steering message remove/edit.
 
 ## 0.28.1
