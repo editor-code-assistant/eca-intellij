@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: fix Stop button unresponsive during fast streaming by memoizing markdown rendering; fix per-chat model selection resetting to session default.
+
 ## 0.28.2
 
 - Bump `eca-webview`: chat UI fixes (duplicate flags, Thinking stuck after stop, animation overshoot, rollback flicker, message actions) and steering message remove/edit.
