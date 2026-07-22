@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.4
+
 - Bump `eca-webview`: typeahead search in select box dropdowns, typing jumps to the next option matching the typed prefix in agent/model/variant lists.
 
 ## 0.28.3
