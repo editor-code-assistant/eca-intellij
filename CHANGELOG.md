@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.5
+
 - Fix plugin load failure on 2026.2+ (`ClassNotFoundException: com.intellij.ui.jcef.JBCefBrowser`): declare optional dependency on the new `com.intellij.modules.jcef` plugin.
 - Fix server download failing during eca release windows: resolve the latest version from the published GitHub release instead of master's `ECA_VERSION`, and fall back to the previously downloaded binary when the download fails.
 
