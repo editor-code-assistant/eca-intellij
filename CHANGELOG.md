@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.28.6
+
 - Bump `eca-webview`: keep unsent prompt text when switching to MCP/settings views and back.
 
 ## 0.28.5
