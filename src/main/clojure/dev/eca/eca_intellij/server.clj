@@ -15,8 +15,9 @@
    [com.intellij.openapi.application ApplicationInfo]
    [com.intellij.openapi.project Project]
    [com.intellij.util EnvironmentUtil]
-   [java.io File InputStream]
+   [java.io File IOException InputStream]
    [java.math BigInteger]
+   [java.net HttpURLConnection URI]
    [java.nio.file CopyOption Files StandardCopyOption]
    [java.security MessageDigest]
    [java.util.zip ZipInputStream]))
@@ -71,11 +72,44 @@
     :aarch64
     :amd64))
 
-(def ^:private latest-version-uri
-  "https://raw.githubusercontent.com/editor-code-assistant/eca/master/resources/ECA_VERSION")
+(def ^:private latest-release-uri
+  "https://github.com/editor-code-assistant/eca/releases/latest")
 
 (def ^:private download-artifact-uri
   "https://github.com/editor-code-assistant/eca/releases/download/%s/%s")
+
+(defn ^:private version-from-release-redirect
+  "Extracts the version from a GitHub `/releases/latest` redirect Location
+   header (`https://github.com/<org>/<repo>/releases/tag/<version>`).
+   Nil when absent or not a tag URL."
+  [location]
+  (some-> location (string/split #"/tag/") second string/trim not-empty))
+
+(defn ^:private latest-version!
+  "Resolves the latest *published* ECA release version by reading the
+   Location header of the GitHub `/releases/latest` redirect.
+
+   The previous source (`resources/ECA_VERSION` on master) races the release
+   pipeline: the file is bumped when the release tag is cut, up to ~1h before
+   the native artifacts finish building/uploading, so downloads during that
+   window 404 (exactly what JetBrains' marketplace plugin checker hit with
+   0.148.1). The redirect can only ever point at a published release.
+   Returns nil when it cannot be resolved (e.g. offline)."
+  []
+  (try
+    (let [^HttpURLConnection conn (.openConnection (.toURL (URI. latest-release-uri)))]
+      (try
+        (doto conn
+          (.setInstanceFollowRedirects false)
+          (.setConnectTimeout 10000)
+          (.setReadTimeout 10000)
+          (.setRequestMethod "HEAD"))
+        (version-from-release-redirect (.getHeaderField conn "Location"))
+        (finally
+          (.disconnect conn))))
+    (catch Exception e
+      (logger/warn "Could not resolve latest ECA version:" (.getMessage e))
+      nil)))
 
 (defn ^:private unzip-file [input ^File dest-file]
   (with-open [stream (-> input io/input-stream ZipInputStream.)]
@@ -165,6 +199,38 @@
       (finally
         (io/delete-file zip-temp true)
         (io/delete-file binary-temp true)))))
+
+(defn ^:private download-or-use-existing!
+  "Runs download-server!, degrading gracefully on environmental IO failures
+   (offline, proxy issues, or a release published seconds ago whose artifacts
+   are still uploading): falls back to a previously downloaded binary when
+   one exists. Logs warnings, never Logger.error -- JetBrains' marketplace
+   plugin checker fails any plugin that logs an error during startup and none
+   of these conditions are plugin bugs. Returns true when a usable binary
+   sits at download-path afterwards."
+  [project indicator ^File download-path ^File server-version-path latest-version]
+  (try
+    (download-server! project indicator download-path server-version-path latest-version)
+    true
+    (catch IOException e
+      (logger/warn (str "Could not download ECA " latest-version ": " (.getMessage e)))
+      (if (.exists download-path)
+        (do
+          (logger/info "Using previously downloaded ECA server")
+          (notification/show-notification! {:project project
+                                            :type :warning
+                                            :title "ECA download failed"
+                                            :message (str "Could not download ECA " latest-version
+                                                          ", using the previously downloaded version instead: "
+                                                          (.getMessage e))})
+          true)
+        (do
+          (notification/show-notification! {:project project
+                                            :type :error
+                                            :title "ECA download error"
+                                            :message (str "Could not download ECA " latest-version ": "
+                                                          (.getMessage e))})
+          false)))))
 
 (def ^:private initialize-timeout-ms 60000)
 
@@ -320,7 +386,7 @@
          (ClojureClassLoader/bind)
          (let [download-path (config/download-server-path)
                server-version-path (config/download-server-version-path)
-               latest-version* (delay (try (string/trim (slurp latest-version-uri)) (catch Exception _ nil)))
+               latest-version* (delay (latest-version!))
                custom-server-path (db/get-in project [:settings :server-path])
                started? (try
                           (cond
@@ -334,8 +400,8 @@
                             (spawn-server! project indicator download-path)
 
                             @latest-version*
-                            (do (download-server! project indicator download-path server-version-path @latest-version*)
-                                (spawn-server! project indicator download-path))
+                            (and (download-or-use-existing! project indicator download-path server-version-path @latest-version*)
+                                 (spawn-server! project indicator download-path))
 
                             :else
                             (do (notification/show-notification! {:project project
@@ -344,7 +410,13 @@
                                                                   :message "There is no server downloaded and there was a network issue trying to download the latest server"})
                                 false))
                           (catch Exception e
-                            (logger/error "Error starting ECA server:" e)
+                            ;; IO failures are environmental (network, disk), not plugin
+                            ;; bugs: warn so JetBrains' plugin checker (which fails
+                            ;; plugins on any logged error) stays green; the user is
+                            ;; informed via the notification either way.
+                            (if (instance? IOException e)
+                              (logger/warn (str "Could not start ECA server: " (.getMessage e)))
+                              (logger/error "Error starting ECA server:" e))
                             (notification/show-notification! {:project project
                                                               :type :error
                                                               :title "ECA start error"

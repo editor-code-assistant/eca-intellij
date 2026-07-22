@@ -11,6 +11,7 @@
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.config :as config]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.notification :as notification]
    [dev.eca.eca-intellij.server :as server]
    [dev.eca.eca-intellij.test-fixtures :as fixt])
   (:import
@@ -148,6 +149,70 @@
 (deftest expected-sha256-returns-nil-when-checksum-file-missing
   (is (nil? (#'server/expected-sha256
              (str "/nonexistent/eca-" (System/nanoTime) ".zip")))))
+
+(deftest version-from-release-redirect-parses-tag-url
+  (testing "The GitHub /releases/latest redirect Location header points at
+            /releases/tag/<version>; that trailing segment is the latest
+            *published* release version."
+    (is (= "0.148.0"
+           (#'server/version-from-release-redirect
+            "https://github.com/editor-code-assistant/eca/releases/tag/0.148.0")))
+    (is (= "0.148.0"
+           (#'server/version-from-release-redirect
+            "https://github.com/editor-code-assistant/eca/releases/tag/0.148.0\n")))))
+
+(deftest version-from-release-redirect-nil-on-absent-or-malformed
+  (is (nil? (#'server/version-from-release-redirect nil)))
+  (is (nil? (#'server/version-from-release-redirect
+             "https://github.com/editor-code-assistant/eca/releases")))
+  (is (nil? (#'server/version-from-release-redirect
+             "https://github.com/editor-code-assistant/eca/releases/tag/"))))
+
+(deftest download-failure-falls-back-to-existing-binary
+  (testing "Regression (JetBrains plugin-checker build 365160, 2026-07-22):
+            during an eca release window the advertised latest version can
+            precede its artifacts by many minutes, so the artifact download
+            404s (FileNotFoundException). With a previously downloaded binary
+            on disk, startup must warn and reuse it instead of failing."
+    (fixt/with-test-project [project]
+      (let [existing (File/createTempFile "eca-server" nil)
+            notifications (atom [])]
+        (try
+          (with-redefs [server/download-server! (fn [& _]
+                                                  (throw (java.io.FileNotFoundException.
+                                                          "https://github.com/.../eca-native-static-linux-amd64.zip")))
+                        notification/show-notification! (fn [n] (swap! notifications conj n))]
+            (is (true? (#'server/download-or-use-existing!
+                        project nil existing (io/file "unused-version-file") "9.9.9")))
+            (is (= :warning (:type (first @notifications)))))
+          (finally
+            (.delete existing)))))))
+
+(deftest download-failure-without-existing-binary-returns-false
+  (testing "Same checker regression: with no previously downloaded binary the
+            failure is surfaced as a user notification and a false return --
+            never an exception bubbling into Logger.error, which JetBrains'
+            InstallPluginTest counts as a plugin failure."
+    (fixt/with-test-project [project]
+      (let [notifications (atom [])
+            missing (io/file (str "/nonexistent/eca-" (System/nanoTime)))]
+        (with-redefs [server/download-server! (fn [& _]
+                                                (throw (java.io.FileNotFoundException. "404")))
+                      notification/show-notification! (fn [n] (swap! notifications conj n))]
+          (is (false? (#'server/download-or-use-existing!
+                       project nil missing (io/file "unused-version-file") "9.9.9")))
+          (is (= :error (:type (first @notifications)))))))))
+
+(deftest download-non-io-failure-propagates
+  (testing "Non-environmental failures (e.g. checksum mismatch ex-info) are
+            potential plugin/release bugs and must keep propagating to
+            start!'s catch, where they are logged as real errors."
+    (fixt/with-test-project [project]
+      (with-redefs [server/download-server! (fn [& _]
+                                              (throw (ex-info "Checksum mismatch" {})))]
+        (is (thrown? clojure.lang.ExceptionInfo
+                     (#'server/download-or-use-existing!
+                      project nil (io/file "unused") (io/file "unused") "9.9.9")))))))
 
 (deftest shutdown-works-when-server-stuck-starting
   (testing "Regression: shutdown! was gated on api/connected-client, which

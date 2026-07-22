@@ -7,6 +7,16 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <!--
+      Since 2026.2 (branch 262) the com.intellij.ui.jcef / org.cef classes live in the
+      separate bundled "Web Browser (JCEF)" plugin (com.intellij.modules.jcef) with its
+      own classloader instead of the core platform. Declaring it optional keeps the
+      plugin loading on 2026.1 and older (where this module id does not exist and JCEF
+      ships in the platform) while linking the JCEF plugin classloader on 2026.2+.
+      Without it the tool window fails with ClassNotFoundException:
+      com.intellij.ui.jcef.JBCefBrowser on 262+.
+    -->
+    <depends optional="true" config-file="eca-jcef.xml">com.intellij.modules.jcef</depends>
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.github.ericdallo.clj4intellij.extension.NREPLStartup"/>
         <postStartupActivity id="EcaInitDb" implementation="dev.eca.eca_intellij.extension.init_db_startup.InitDBStartup"/>

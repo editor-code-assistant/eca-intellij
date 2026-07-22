@@ -1,0 +1,6 @@
+<idea-plugin>
+    <!-- Placeholder descriptor required by the optional com.intellij.modules.jcef
+         dependency in plugin.xml. JCEF-dependent extensions stay registered in
+         plugin.xml because on 2026.1 and older JCEF ships in the core platform
+         and this file is never loaded there. -->
+</idea-plugin>
