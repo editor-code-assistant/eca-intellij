@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: keep unsent prompt text when switching to MCP/settings views and back.
+
 ## 0.28.5
 
 - Fix plugin load failure on 2026.2+ (`ClassNotFoundException: com.intellij.ui.jcef.JBCefBrowser`): declare optional dependency on the new `com.intellij.modules.jcef` plugin.
