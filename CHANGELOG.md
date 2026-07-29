@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: pasted images show as thumbnail chips in the prompt and are detached after sending.
+
 ## 0.28.6
 
 - Bump `eca-webview`: keep unsent prompt text when switching to MCP/settings views and back.
