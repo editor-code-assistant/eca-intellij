@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.29.0
+
 - Support `editor/getDefinition` and `editor/getReferences` server requests backed by IntelliJ PSI.
 
 ## 0.28.7
