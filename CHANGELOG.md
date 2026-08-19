@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Support `editor/getDefinition` and `editor/getReferences` server requests backed by IntelliJ PSI.
+
 ## 0.28.7
 
 - Bump `eca-webview`: pasted images show as thumbnail chips in the prompt and are detached after sending.

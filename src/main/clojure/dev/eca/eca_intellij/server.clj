@@ -26,7 +26,9 @@
 
 (def ^:private client-capabilities
   {:code-assistant {:chat true
-                    :editor {:diagnostics true}
+                    :editor {:diagnostics true
+                             :definition true
+                             :references true}
                     :chat-capabilities {:ask-question true}}})
 
 (def ^:private artifacts

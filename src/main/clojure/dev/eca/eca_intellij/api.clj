@@ -3,6 +3,7 @@
    [clojure.core.async :as async]
    [clojure.string :as string]
    [dev.eca.eca-intellij.db :as db]
+   [dev.eca.eca-intellij.editor-nav :as editor-nav]
    [com.github.ericdallo.clj4intellij.logger :as logger]
    [lsp4clj.coercer :as coercer]
    [lsp4clj.io-chan :as io-chan]
@@ -185,6 +186,8 @@
     (protocols.endpoint/log this :messages "received request:" req)
     (when-let [response-body (case method
                                "editor/getDiagnostics" (get-editor-diagnostics (:project context) (:params req))
+                               "editor/getDefinition" (editor-nav/get-definition (:project context) (:params req))
+                               "editor/getReferences" (editor-nav/get-references (:project context) (:params req))
                                "chat/askQuestion" (chat-ask-question context (:params req))
                                (logger/warn "Unknown LSP request method" method))]
       (let [resp (lsp.responses/response id response-body)]
