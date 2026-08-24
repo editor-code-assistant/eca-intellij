@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: closing a chat tab no longer deletes the chat from the server; it stays resumable until retention cleanup or `/delete-chat` removes it.
+
 ## 0.29.0
 
 - Support `editor/getDefinition` and `editor/getReferences` server requests backed by IntelliJ PSI.
