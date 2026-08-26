@@ -5,6 +5,7 @@
    are the two pieces most recently bitten by regressions; both have
    named tests below."
   (:require
+   [clojure.string :as string]
    [clojure.test :refer [deftest is testing]]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.db :as db]
@@ -126,35 +127,38 @@
 
 (deftest config-updated-strips-chat-id-from-cached-server-config
   (testing "Regression: a7221cb. The server emits per-chat config
-            scoped with :chatId; replaying :server-config on
-            webview/ready must NOT leak a stale chatId into a new chat
-            window. The dispatch path:
-            api/config-updated -> db/update-in :server-config
-            -> (merge old new) but with :chatId dissoc'd."
+            scoped with chatId (kebab-cased to :chat-id by lsp4clj on
+            receive); replaying :server-config on webview/ready must NOT
+            leak a stale chatId into a new chat window. The dispatch
+            path: api/config-updated -> db/update-in :server-config
+            -> (merge old new) but with :chat-id dissoc'd."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
         (api/config-updated {:project project}
-                            {:chatId "should-be-stripped"
+                            {:chat-id "should-be-stripped"
                              :model "claude"
                              :trust "ask"})
         (let [cached (db/get-in project [:server-config])]
           (is (= "claude" (:model cached)))
           (is (= "ask" (:trust cached)))
-          (is (not (contains? cached :chatId))
-              ":chatId MUST NOT land in cached :server-config"))))))
+          (is (not (contains? cached :chat-id))
+              ":chat-id MUST NOT land in cached :server-config"))))))
 
 (deftest config-updated-forwards-original-params-to-webview
-  (testing "The live forward (handle-config-changed) keeps :chatId
+  (testing "The live forward (handle-config-changed) keeps the chat id
             because the webview's currently-focused chat handler does
-            want to scope the immediate update."
+            want to scope the immediate update. Inbound :chat-id lands
+            on the wire as chatId via the camel-case serializer."
     (fixt/with-test-project [project
                              :initial-db {:settings {:server-path "/x"}}]
       (fixt/with-stub-bridge bridge
         (api/config-updated {:project project}
-                            {:chatId "chat-1"
+                            {:chat-id "chat-1"
                              :model "claude"})
         (let [out (fixt/last-to-webview-of-type bridge "config/updated")]
           (is (some? out))
           (is (= "claude" (get-in out [:data :model])))
-          (is (= "chat-1" (get-in out [:data :chatId]))
-              "live forward to the webview MUST include :chatId"))))))
+          (is (= "chat-1" (get-in out [:data :chat-id]))
+              "live forward keeps the chat id in the params")
+          (is (string/includes? (fixt/msg->json out) "\"chatId\":\"chat-1\"")
+              "camel-case serializer restores chatId on the wire"))))))

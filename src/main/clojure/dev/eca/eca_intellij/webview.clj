@@ -10,6 +10,7 @@
    [dev.eca.eca-intellij.editor :as editor]
    [dev.eca.eca-intellij.editor-actions :as editor-actions]
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
+   [dev.eca.eca-intellij.inline-chat :as inline-chat]
    [dev.eca.eca-intellij.log-store :as log-store]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
@@ -22,6 +23,7 @@
    [com.intellij.openapi.util.io FileUtil]
    [com.intellij.openapi.fileChooser FileChooserFactory FileSaverDescriptor]
    [com.intellij.openapi.vfs LocalFileSystem VirtualFileWrapper]
+   [com.intellij.openapi.wm ToolWindowManager]
    [com.intellij.ui ColorUtil JBColor]
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
@@ -126,6 +128,17 @@
                                   (json/generate-string (shared/map->camel-cased-map msg)))
                           (.getURL cef-browser)
                           0))))
+
+(defn select-chat!
+  "Activate the ECA tool window and select CHAT-ID in the webview."
+  [^Project project chat-id]
+  (app-manager/invoke-later!
+   {:invoke-fn (fn []
+                 (some-> (ToolWindowManager/getInstance project)
+                         (.getToolWindow "ECA")
+                         (.activate nil))
+                 (send-msg! project {:type "chat/selectChat"
+                                     :data chat-id}))}))
 
 (defn handle-config-changed [^Project project config]
   (when-let [settings (db/get-in project [:settings])]
@@ -489,18 +502,20 @@
 
 (defmethod api/config-updated :default
   [{:keys [project]} params]
-  ;; The server scopes per-chat config updates with a top-level :chatId.
-  ;; Keep that field out of the persisted :server-config snapshot (which is
-  ;; replayed verbatim on webview/ready) so a stale chatId never leaks into
-  ;; an unrelated re-broadcast; the live params keep the field for the
-  ;; immediate forward to the webview.
-  (db/update-in project [:server-config] #(merge % (dissoc params :chatId)))
+  ;; The server scopes per-chat config updates with a top-level chatId
+  ;; (kebab-cased to :chat-id by lsp4clj on receive). Keep that field out
+  ;; of the persisted :server-config snapshot (which is replayed verbatim
+  ;; on webview/ready) so a stale chatId never leaks into an unrelated
+  ;; re-broadcast; the live params keep the field for the immediate
+  ;; forward to the webview.
+  (db/update-in project [:server-config] #(merge % (dissoc params :chat-id)))
   (handle-config-changed project params))
 
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/contentReceived"
-                      :data params}))
+                      :data params})
+  (inline-chat/on-content-received project params))
 
 (defmethod api/chat-cleared :default
   [{:keys [project]} params]
@@ -510,17 +525,20 @@
 (defmethod api/chat-deleted :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/deleted"
-                      :data (:chatId params)}))
+                      :data (:chat-id params)})
+  (inline-chat/on-chat-deleted project params))
 
 (defmethod api/chat-opened :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/opened"
-                      :data params}))
+                      :data params})
+  (inline-chat/on-chat-opened project params))
 
 (defmethod api/chat-status-changed :default
   [{:keys [project]} params]
   (send-msg! project {:type "chat/statusChanged"
-                      :data params}))
+                      :data params})
+  (inline-chat/on-status-changed project params))
 
 (defmethod api/tool-server-updated  :default
   [{:keys [project]} params]
@@ -550,6 +568,7 @@
 
 (defmethod api/chat-ask-question :default
   [{:keys [project]} params]
+  (inline-chat/on-ask-question project params)
   (let [request-id (str (java.util.UUID/randomUUID))
         p (promise)]
     (swap! pending-questions assoc request-id p)

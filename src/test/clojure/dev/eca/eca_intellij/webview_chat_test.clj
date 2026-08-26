@@ -244,11 +244,13 @@
         (is (= "c1" (get-in reply [:data :chatId])))))))
 
 (deftest chat-deleted-forwards-only-the-chat-id
-  (testing "Production code extracts :chatId -- verify the wire payload
-            is the bare id, not the full params map."
+  (testing "lsp4clj kebab-cases inbound keys (chatId -> :chat-id).
+            Production code extracts :chat-id -- verify the wire payload
+            is the bare id, not the full params map (was nil while the
+            handler read :chatId)."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
-        (api/chat-deleted {:project project} {:chatId "c1" :extra "ignored"})
+        (api/chat-deleted {:project project} {:chat-id "c1" :extra "ignored"})
         (let [reply (fixt/last-to-webview-of-type bridge "chat/deleted")]
           (is (= "c1" (:data reply))))))))
 

@@ -13,6 +13,7 @@
    :server-process nil
    :project nil
    :session {:mcp-servers {}}
+   :inline-chat {:sessions {} :sticky {} :titles {}}
    :server-config {}
    :on-status-changed-fns {}
    :on-focus-changed-fns {}

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Add inline chat: ask ECA from any editor via `chat/inlinePrompt`, answer streams into an inlay at the cursor with markdown rendering; click it for follow-up, stop, tool approvals.
+- Fix chat deletion from other clients not removing the webview tab (`chat/deleted` forwarded a nil id).
+
 ## 0.30.0
 
 - Bump `eca-webview`: closing a chat tab no longer deletes the chat from the server; it stays resumable until retention cleanup or `/delete-chat` removes it.

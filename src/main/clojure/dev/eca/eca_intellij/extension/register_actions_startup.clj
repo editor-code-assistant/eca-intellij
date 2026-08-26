@@ -3,6 +3,7 @@
    [com.github.ericdallo.clj4intellij.action :as action]
    [com.github.ericdallo.clj4intellij.extension :refer [def-extension]]
    [dev.eca.eca-intellij.extension.server-logs :as server-logs]
+   [dev.eca.eca-intellij.inline-chat :as inline-chat]
    [dev.eca.eca-intellij.shared :as shared]
    [dev.eca.eca-intellij.webview :as webview])
   (:import
@@ -39,6 +40,18 @@
           context (get-context-at-cursor editor)]
       (webview/add-context-to-system-prompt context project))))
 
+(defn ^:private inline-prompt-action [^AnActionEvent event]
+  (when-let [editor (.getData event CommonDataKeys/EDITOR_EVEN_IF_INACTIVE)]
+    (inline-chat/inline-prompt! (action-event->project event) editor {})))
+
+(defn ^:private inline-prompt-selecting-action [^AnActionEvent event]
+  (when-let [editor (.getData event CommonDataKeys/EDITOR_EVEN_IF_INACTIVE)]
+    (inline-chat/inline-prompt! (action-event->project event) editor {:force-select? true})))
+
+(defn ^:private inline-chat-actions-action [^AnActionEvent event]
+  (when-let [editor (.getData event CommonDataKeys/EDITOR_EVEN_IF_INACTIVE)]
+    (inline-chat/show-actions! (action-event->project event) editor)))
+
 (def-extension RegisterActionsStartup []
   ProjectActivity
   (execute [_this ^Project _project ^CoroutineScope _]
@@ -51,12 +64,27 @@
                              :title "Add context to system prompt"
                              :description "Add context at cursor to system prompt in chat"
                              :on-performed #'add-context-to-system-prompt-action)
+    (action/register-action! :id "Eca.InlinePrompt"
+                             :title "Inline prompt"
+                             :description "Ask ECA, streaming the answer inline below the cursor"
+                             :on-performed #'inline-prompt-action)
+    (action/register-action! :id "Eca.InlinePromptSelecting"
+                             :title "Inline prompt (pick chat)"
+                             :description "Ask ECA inline, re-picking which chat to use"
+                             :on-performed #'inline-prompt-selecting-action)
+    (action/register-action! :id "Eca.InlineChatActions"
+                             :title "Inline chat actions"
+                             :description "Actions for the inline chat of this file (follow-up, stop, approvals...)"
+                             :on-performed #'inline-chat-actions-action)
     (action/register-group! :id "Eca.Actions"
                             :popup true
                             :text "ECA"
                             :icon (shared/logo-icon)
                             :children [{:type :add-to-group :group-id "ToolsMenu" :anchor :first}
                                        {:type :add-to-group :group-id "EditorPopupMenu" :anchor :before :relative-to "RefactoringMenu"}
+                                       {:type :reference :ref "Eca.InlinePrompt"}
+                                       {:type :reference :ref "Eca.InlineChatActions"}
+                                       {:type :separator}
                                        {:type :reference :ref "Eca.AddContextToSystemPrompt"}
                                        {:type :separator}
                                        {:type :reference :ref "Eca.ShowServerLogs"}
