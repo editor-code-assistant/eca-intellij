@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.31.1
+
 - Bump `eca-webview`: expanded thinking/tool call blocks stay open when they finish; restoring a `/command` from prompt history no longer opens the completion popup.
 
 ## 0.31.0
