@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.31.2
+
 - Bump `eca-webview`: show the model and variant a subagent is running with in the `spawn_agent` card.
 
 ## 0.31.1
