@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: show the model and variant a subagent is running with in the `spawn_agent` card.
+
 ## 0.31.1
 
 - Bump `eca-webview`: expanded thinking/tool call blocks stay open when they finish; restoring a `/command` from prompt history no longer opens the completion popup.
