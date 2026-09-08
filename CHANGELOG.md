@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: expanded thinking/tool call blocks stay open when they finish; restoring a `/command` from prompt history no longer opens the completion popup.
+
 ## 0.31.0
 
 - Add inline chat: ask ECA from any editor via `chat/inlinePrompt`, answer streams into an inlay at the cursor with markdown rendering; click it for follow-up, stop, tool approvals.
