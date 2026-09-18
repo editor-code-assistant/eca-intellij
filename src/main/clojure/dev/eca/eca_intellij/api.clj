@@ -7,6 +7,7 @@
    [com.github.ericdallo.clj4intellij.logger :as logger]
    [lsp4clj.coercer :as coercer]
    [lsp4clj.io-chan :as io-chan]
+   [lsp4clj.lsp.errors :as lsp.errors]
    [lsp4clj.lsp.requests :as lsp.requests]
    [lsp4clj.lsp.responses :as lsp.responses]
    [lsp4clj.protocols.endpoint :as protocols.endpoint])
@@ -99,26 +100,52 @@
       (logger/warn "Error getting editor diagnostics:" (.getMessage e))
       {:diagnostics []})))
 
-(defn ^:private receive-message
-  [client context message]
-  (let [message-type (coercer/input-message-type message)]
+(defn ^:private handle-request
+  "Result of the server request METHOD, or ::method-not-found."
+  [context method params]
+  (case method
+    "editor/getDiagnostics" (get-editor-diagnostics (:project context) params)
+    "editor/getDefinition" (editor-nav/get-definition (:project context) params)
+    "editor/getReferences" (editor-nav/get-references (:project context) params)
+    "chat/askQuestion" (chat-ask-question context params)
+    ::method-not-found))
+
+(defn ^:private request-response
+  "JSON-RPC response for the server request REQ. Unknown methods and
+   throwing handlers answer with an error so the server never waits on
+   a response that will not come."
+  [context {:keys [id method params]}]
+  (let [resp (lsp.responses/response id)]
     (try
-      (let [response
-            (case message-type
-              (:parse-error :invalid-request)
-              (protocols.endpoint/log client :error "Error reading message" message)
-              :request
-              (protocols.endpoint/receive-request client context message)
-              (:response.result :response.error)
-              (protocols.endpoint/receive-response client message)
-              :notification
-              (protocols.endpoint/receive-notification client context message))]
-        ;; Ensure client only responds to requests
-        (when (identical? :request message-type)
-          response))
+      (let [result (handle-request context method params)]
+        (if (identical? ::method-not-found result)
+          (do (logger/warn "Unknown LSP request method" method)
+              (lsp.responses/error resp (lsp.errors/not-found method)))
+          (lsp.responses/result resp result)))
       (catch Throwable e
-        (protocols.endpoint/log client :error "Error receiving:" e)
-        (throw e)))))
+        (logger/error "Error handling LSP request" method e)
+        (lsp.responses/error resp (lsp.errors/body :internal-error
+                                                   (ex-message e)
+                                                   {:id id :method method}))))))
+
+(defn ^:private receive-message
+  "Dispatches one server message. Always nil: responses to server
+   requests are written to output-ch by receive-request itself."
+  [client context message]
+  (try
+    (case (coercer/input-message-type message)
+      (:parse-error :invalid-request)
+      (protocols.endpoint/log client :error "Error reading message" message)
+      :request
+      (protocols.endpoint/receive-request client context message)
+      (:response.result :response.error)
+      (protocols.endpoint/receive-response client message)
+      :notification
+      (protocols.endpoint/receive-notification client context message))
+    (catch Throwable e
+      (protocols.endpoint/log client :error "Error receiving:" e)
+      (throw e)))
+  nil)
 
 (defrecord Client [client-id
                    input-ch
@@ -133,7 +160,9 @@
     (let [pipeline (async/pipeline-blocking
                     1 ;; no parallelism preserves server message order
                     output-ch
-                     ;; `keep` means we do not reply to responses and notifications
+                    ;; receive-message is nil for every message so the
+                    ;; pipeline itself never writes to output-ch; it is
+                    ;; still the `to` channel so closing input-ch closes it.
                     (keep #(receive-message this context %))
                     input-ch)]
       (async/thread
@@ -182,17 +211,21 @@
                            resp
                            (:result resp))))
       (protocols.endpoint/log this :error "received response for unmatched request:" resp)))
-  (receive-request [this context {:keys [id method] :as req}]
+  (receive-request [this context req]
     (protocols.endpoint/log this :messages "received request:" req)
-    (when-let [response-body (case method
-                               "editor/getDiagnostics" (get-editor-diagnostics (:project context) (:params req))
-                               "editor/getDefinition" (editor-nav/get-definition (:project context) (:params req))
-                               "editor/getReferences" (editor-nav/get-references (:project context) (:params req))
-                               "chat/askQuestion" (chat-ask-question context (:params req))
-                               (logger/warn "Unknown LSP request method" method))]
-      (let [resp (lsp.responses/response id response-body)]
+    ;; Handled off the pipeline thread, as lsp4clj's server does: the
+    ;; response goes to output-ch once ready and nil is returned so the
+    ;; pipeline moves on to the next server message. chat/askQuestion
+    ;; parks until the user answers (up to 5 min) and the editor/*
+    ;; handlers wait for read actions; blocking the single-threaded
+    ;; pipeline held back every other server message meanwhile, including
+    ;; responses to our own requests, which deadlocked webview handlers
+    ;; waiting on them (a /login ask froze the whole tool window).
+    (future
+      (let [resp (request-response context req)]
         (protocols.endpoint/log this :messages "sending response:" resp)
-        resp)))
+        (async/>!! output-ch resp)))
+    nil)
   (receive-notification [this context {:keys [method params] :as notif}]
     (protocols.endpoint/log this :messages "received notification:" notif)
     (case method

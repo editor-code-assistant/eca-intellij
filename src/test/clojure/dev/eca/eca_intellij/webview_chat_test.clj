@@ -47,6 +47,60 @@
         (is (some? reply))
         (is (= "fresh-chat-id" (get-in reply [:data :id])))))))
 
+(deftest user-prompt-does-not-block-handle-until-the-server-answers
+  (testing "Regression seen on 0.31.2 (2624d73): `handle` deref'd the
+            chat/prompt response on the calling thread, the JCEF UI
+            thread, so a slow or withheld response froze the whole tool
+            window (typing, clicks and JS execution all stop while that
+            thread is blocked). With /login the response was withheld by
+            our own pending chat/askQuestion handler, for 5 minutes. The
+            wait must happen on the async seam, never in `handle`."
+    (fixt/with-test-project [project]
+      (let [real-async! @#'webview/async!
+            never-answered (promise)]
+        (fixt/with-stub-bridge bridge
+          (with-redefs [webview/async! real-async!
+                        api/request! (fn [_ args]
+                                       (swap! (:sent-to-server bridge) conj [:request (first args) (second args)])
+                                       never-answered)]
+            (try
+              (let [handled (future
+                              (webview/handle
+                               (fixt/to-json-payload {:type "chat/userPrompt"
+                                                      :data {:chatId "c1" :prompt "/login anthropic"}})
+                               project))]
+                (is (not= :timeout (deref handled 2000 :timeout))
+                    "handle must return while the chat/prompt response is still pending")
+                (is (some? (fixt/last-to-server-of bridge :chat/prompt))
+                    "the request itself is sent synchronously, keeping message order")
+                (is (nil? (fixt/last-to-webview-of-type bridge "chat/newChat"))
+                    "no reply forwarded before the server answers"))
+              (finally
+                (deliver never-answered {:chat-id "c1"})))))))))
+
+(deftest dispatch-returns-immediately-and-handles-in-arrival-order
+  (testing "`dispatch!` is what the JBCefJSQuery handler calls on the JCEF
+            UI thread: it must hand the message off without waiting for
+            `handle`, and messages must still be handled one at a time in
+            the order they arrived (a chat/queryCommands reply for an
+            older query must not overtake a newer one)."
+    (fixt/with-test-project [project]
+      (let [gate (promise)
+            seen (atom [])
+            all-seen (promise)]
+        (with-redefs [webview/handle (fn [msg _project]
+                                       @gate
+                                       (swap! seen conj msg)
+                                       (when (= 5 (count @seen))
+                                         (deliver all-seen true)))]
+          (doseq [i (range 5)]
+            (webview/dispatch! (str "msg-" i) project))
+          (is (empty? @seen)
+              "dispatch! returned for all messages while handle is still gated")
+          (deliver gate true)
+          (is (true? (deref all-seen 2000 :timeout)))
+          (is (= ["msg-0" "msg-1" "msg-2" "msg-3" "msg-4"] @seen)))))))
+
 (deftest selected-model-changed-carries-chat-id
   (testing "Regression a7221cb"
     (fixt/with-test-project [project]

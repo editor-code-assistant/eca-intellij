@@ -14,6 +14,7 @@
    [dev.eca.eca-intellij.log-store :as log-store]
    [dev.eca.eca-intellij.shared :as shared])
   (:import
+   [com.github.ericdallo.clj4intellij ClojureClassLoader]
    [com.intellij.ide BrowserUtil]
    [com.intellij.openapi.editor Editor]
    [com.intellij.openapi.editor.colors EditorColorsManager]
@@ -28,11 +29,24 @@
    [com.intellij.ui.jcef JBCefBrowser]
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
    [java.awt Color]
-   [java.util Base64]))
+   [java.util Base64]
+   [java.util.concurrent ExecutorService Executors ThreadFactory]))
 
 (set! *warn-on-reflection* true)
 
 (def ^:private pending-questions (atom {}))
+
+(defn ^:private async!
+  "Runs F on a worker thread, logging failures. Every wait on the ECA
+   server or on the user inside `handle` goes through here, so the
+   thread handling webview messages is never blocked (tests run it
+   inline)."
+  [f]
+  (future
+    (try
+      (f)
+      (catch Throwable e
+        (logger/error "Error handling webview message:" e)))))
 
 (defn ^:private hex [jb-color]
   (str "#" (ColorUtil/toHex jb-color)))
@@ -129,6 +143,27 @@
                           (.getURL cef-browser)
                           0))))
 
+(defn ^:private request-then!
+  "Sends REQ to the server right away, keeping the order webview messages
+   arrived in, and calls ON-RESULT with the response on a worker thread."
+  [client req on-result]
+  (let [response (api/request! client req)]
+    (async! #(on-result @response))))
+
+(defn ^:private reply!
+  "Answers a webview request of TYPE with RESULT, echoing the requestId the
+   webview correlates its pending promise with."
+  [^Project project type request-id result]
+  (send-msg! project {:type type
+                      :data (merge {:requestId request-id} result)}))
+
+(defn ^:private rpc-error-reply!
+  "`reply!` with the `{:error {:code :message}}` envelope the webview
+   thunks reject on, normalized from an `:error` keyed server response."
+  [^Project project type request-id message]
+  (reply! project type request-id {:error {:code "rpc_error"
+                                           :message (or message "RPC error")}}))
+
 (defn select-chat!
   "Activate the ECA tool window and select CHAT-ID in the webview."
   [^Project project chat-id]
@@ -189,7 +224,16 @@
   [^Project project]
   (some-> (FileEditorManager/getInstance project) .getSelectedTextEditor))
 
-(defn handle [msg ^Project project]
+(defn handle
+  "Handles one MSG (JSON string) posted by the webview.
+
+   Must return promptly: branches send requests/notifications to the
+   server synchronously (preserving arrival order) but never wait for a
+   response, a dialog or a popup here; those waits go through `async!`.
+   Waiting here used to freeze the whole tool window: `handle` ran on the
+   JCEF UI thread and a `chat/askQuestion` pending in the server message
+   pipeline meant the awaited response could not even be read."
+  [msg ^Project project]
   (let [{:keys [type data]} (json/parse-string msg keyword)]
     (if (= "webview/ready" type)
       (do
@@ -228,31 +272,33 @@
                                                     :data entry}))))
       (when-let [client (api/connected-client project)]
         (case type
-          "chat/userPrompt" (let [result @(api/request! client [:chat/prompt {:chatId (:chatId data)
-                                                                              :message (:prompt data)
-                                                                              :model (:model data)
-                                                                              :variant (:variant data)
-                                                                              :trust (:trust data)
-                                                                              :agent (:agent data)
-                                                                              :requestId (str (data :requestId))
-                                                                              :contexts (:contexts data)}])]
-                              (send-msg! project
-                                         {:type "chat/newChat"
-                                          :data {:id (:chat-id result)}}))
+          "chat/userPrompt" (request-then! client
+                                           [:chat/prompt {:chatId (:chatId data)
+                                                          :message (:prompt data)
+                                                          :model (:model data)
+                                                          :variant (:variant data)
+                                                          :trust (:trust data)
+                                                          :agent (:agent data)
+                                                          :requestId (str (data :requestId))
+                                                          :contexts (:contexts data)}]
+                                           (fn [result]
+                                             (send-msg! project
+                                                        {:type "chat/newChat"
+                                                         :data {:id (:chat-id result)}})))
           "chat/selectedModelChanged" (api/notify! client [:chat/selectedModelChanged {:chatId (:chatId data)
                                                                                        :model (:model data)
                                                                                        :variant (:variant data)}])
           "chat/selectedAgentChanged" (api/notify! client [:chat/selectedAgentChanged {:chatId (:chatId data)
                                                                                        :agent (:agent data)}])
-          "chat/queryContext" (let [result @(api/request! client [:chat/queryContext data])]
-                                (send-msg! project {:type "chat/queryContext"
-                                                    :data result}))
-          "chat/queryCommands" (let [result @(api/request! client [:chat/queryCommands data])]
-                                 (send-msg! project {:type "chat/queryCommands"
-                                                     :data result}))
-          "chat/queryFiles" (let [result @(api/request! client [:chat/queryFiles data])]
-                              (send-msg! project {:type "chat/queryFiles"
-                                                  :data result}))
+          "chat/queryContext" (request-then! client [:chat/queryContext data]
+                                            #(send-msg! project {:type "chat/queryContext"
+                                                                 :data %}))
+          "chat/queryCommands" (request-then! client [:chat/queryCommands data]
+                                             #(send-msg! project {:type "chat/queryCommands"
+                                                                  :data %}))
+          "chat/queryFiles" (request-then! client [:chat/queryFiles data]
+                                          #(send-msg! project {:type "chat/queryFiles"
+                                                               :data %}))
           "editor/refresh"
           (.refreshFiles (LocalFileSystem/getInstance) [(.findFileByIoFile (LocalFileSystem/getInstance) (io/file (.getBasePath project)))] true true nil)
           "chat/toolCallApprove" (api/notify! client [:chat/toolCallApprove data])
@@ -260,10 +306,12 @@
           "chat/promptStop" (api/notify! client [:chat/promptStop data])
           "chat/promptSteer" (api/notify! client [:chat/promptSteer data])
           "chat/promptSteerRemove" (api/notify! client [:chat/promptSteerRemove data])
-          "chat/update" @(api/request! client [:chat/update {:chatId (:chatId data)
-                                                                :title (:title data)
-                                                                :trust (:trust data)}])
-          "chat/delete" @(api/request! client [:chat/delete data])
+          ;; Requests whose response carries nothing the webview needs:
+          ;; the server drives the UI through its notifications.
+          "chat/update" (api/request! client [:chat/update {:chatId (:chatId data)
+                                                            :title (:title data)
+                                                            :trust (:trust data)}])
+          "chat/delete" (api/request! client [:chat/delete data])
           "chat/addFlag" (app-manager/invoke-later!
                           {:invoke-fn (fn []
                                         (let [user-input (Messages/showInputDialog
@@ -272,22 +320,23 @@
                                                           "Add Flag"
                                                           (Messages/getQuestionIcon))]
                                           (when user-input
-                                            @(api/request! client [:chat/addFlag {:chatId (:chatId data)
-                                                                                  :contentId (:contentId data)
-                                                                                  :text user-input}]))))})
-          "chat/removeFlag" @(api/request! client [:chat/removeFlag data])
-          "chat/fork" @(api/request! client [:chat/fork data])
-          "chat/rollback" (let [option @(editor/quick-pick [{:id :rollback-messages-and-tools :label "Rollback messages and changes done by tool calls"}
-                                                            {:id :rollback-only-messages :label "Rollback only messages"}
-                                                            {:id :rollback-only-tools :label "Rollback only changes done by tool calls"}]
-                                                           {:title "Select which rollback type"})
-                                includes (case (:id option)
-                                           :rollback-messages-and-tools ["messages" "tools"]
-                                           :rollback-only-messages ["messages"]
-                                           :rollback-only-tools ["tools"]
-                                           nil)]
-                            (when includes
-                              @(api/request! client [:chat/rollback (assoc data :includes includes)])))
+                                            (api/request! client [:chat/addFlag {:chatId (:chatId data)
+                                                                                 :contentId (:contentId data)
+                                                                                 :text user-input}]))))})
+          "chat/removeFlag" (api/request! client [:chat/removeFlag data])
+          "chat/fork" (api/request! client [:chat/fork data])
+          "chat/rollback" (let [option (editor/quick-pick [{:id :rollback-messages-and-tools :label "Rollback messages and changes done by tool calls"}
+                                                           {:id :rollback-only-messages :label "Rollback only messages"}
+                                                           {:id :rollback-only-tools :label "Rollback only changes done by tool calls"}]
+                                                          {:title "Select which rollback type"})]
+                            (async!
+                             (fn []
+                               (when-let [includes (case (:id @option)
+                                                     :rollback-messages-and-tools ["messages" "tools"]
+                                                     :rollback-only-messages ["messages"]
+                                                     :rollback-only-tools ["tools"]
+                                                     nil)]
+                                 (api/request! client [:chat/rollback (assoc data :includes includes)])))))
           ;; Resume-picker support. The webview asks for the list of
           ;; persisted chats; on click of a row it sends `chat/open`
           ;; which causes the server to emit `chat/cleared` →
@@ -296,81 +345,40 @@
           ;; are already forwarded by the `defmethod` blocks below /
           ;; in `api.clj`, so the two branches here only need to round-
           ;; trip the request and its `{:found? bool ...}` response.
-          ;; Both wrap in `try/catch` and check the result for `:error`
-          ;; so the webview sees a `{:requestId ... :error {...}}`
-          ;; envelope on failure rather than a silently-dropped reply.
-          "chat/list" (future
-                        (try
-                          (let [result @(api/request! client [:chat/list {:limit (:limit data)
-                                                                          :sortBy (:sortBy data)}])]
-                            (if-let [err (:error result)]
-                              (send-msg! project {:type "chat/list"
-                                                  :data {:requestId (:requestId data)
-                                                         :error {:code "rpc_error"
-                                                                 :message (or (:message err) "RPC error")}}})
-                              (send-msg! project {:type "chat/list"
-                                                  :data (merge {:requestId (:requestId data)} result)})))
-                          (catch Throwable t
-                            (send-msg! project {:type "chat/list"
-                                                :data {:requestId (:requestId data)
-                                                       :error {:code "rpc_error"
-                                                               :message (or (.getMessage t) "Unknown error")}}}))))
-          "chat/open" (future
-                        (try
-                          (let [result @(api/request! client [:chat/open {:chatId (:chatId data)}])]
-                            (if-let [err (:error result)]
-                              (send-msg! project {:type "chat/open"
-                                                  :data {:requestId (:requestId data)
-                                                         :error {:code "rpc_error"
-                                                                 :message (or (:message err) "RPC error")}}})
-                              (send-msg! project {:type "chat/open"
-                                                  :data (merge {:requestId (:requestId data)} result)})))
-                          (catch Throwable t
-                            (send-msg! project {:type "chat/open"
-                                                :data {:requestId (:requestId data)
-                                                       :error {:code "rpc_error"
-                                                               :message (or (.getMessage t) "Unknown error")}}}))))
+          ;; Both check the result for `:error` so the webview sees a
+          ;; `{:requestId ... :error {...}}` envelope on failure rather
+          ;; than a silently-dropped reply.
+          "chat/list" (request-then! client [:chat/list {:limit (:limit data)
+                                                         :sortBy (:sortBy data)}]
+                                     (fn [result]
+                                       (if-let [err (:error result)]
+                                         (rpc-error-reply! project "chat/list" (:requestId data) (:message err))
+                                         (reply! project "chat/list" (:requestId data) result))))
+          "chat/open" (request-then! client [:chat/open {:chatId (:chatId data)}]
+                                     (fn [result]
+                                       (if-let [err (:error result)]
+                                         (rpc-error-reply! project "chat/open" (:requestId data) (:message err))
+                                         (reply! project "chat/open" (:requestId data) result))))
           "mcp/startServer" (api/notify! client [:mcp/startServer data])
           "mcp/stopServer" (api/notify! client [:mcp/stopServer data])
           "mcp/connectServer" (api/notify! client [:mcp/connectServer data])
           "mcp/logoutServer" (api/notify! client [:mcp/logoutServer data])
           "mcp/disableServer" (api/notify! client [:mcp/disableServer data])
           "mcp/enableServer" (api/notify! client [:mcp/enableServer data])
-          "mcp/updateServer" (future
-                               (let [result @(api/request! client [:mcp/updateServer data])]
-                                 (send-msg! project {:type "mcp/updateServer"
-                                                     :data (merge {:requestId (:requestId data)}
-                                                                  result)})))
-          "mcp/addServer" (future
-                            (let [result @(api/request! client [:mcp/addServer data])]
-                              (send-msg! project {:type "mcp/addServer"
-                                                  :data (merge {:requestId (:requestId data)}
-                                                               result)})))
-          "mcp/removeServer" (future
-                               (let [result @(api/request! client [:mcp/removeServer data])]
-                                 (send-msg! project {:type "mcp/removeServer"
-                                                     :data (merge {:requestId (:requestId data)}
-                                                                  result)})))
-          "providers/list" (future
-                             (let [result @(api/request! client [:providers/list {}])]
-                               (send-msg! project {:type "providers/list"
-                                                   :data (merge {:requestId (:requestId data)}
-                                                                result)})))
-          "providers/login" (future
-                              (let [result @(api/request! client [:providers/login data])]
-                                (send-msg! project {:type "providers/login"
-                                                    :data (merge {:requestId (:requestId data)}
-                                                                 result)})))
-          "providers/loginInput" (future
-                                   (let [result @(api/request! client [:providers/loginInput data])]
-                                     (send-msg! project {:type "providers/loginInput"
-                                                         :data (merge {:requestId (:requestId data)}
-                                                                      result)})))
-          "providers/logout" (future
-                               (let [result @(api/request! client [:providers/logout data])]
-                                 (send-msg! project {:type "providers/logout"
-                                                     :data (merge {:requestId (:requestId data)}
-                                                                  result)})))
+          "mcp/updateServer" (request-then! client [:mcp/updateServer data]
+                                           #(reply! project "mcp/updateServer" (:requestId data) %))
+          "mcp/addServer" (request-then! client [:mcp/addServer data]
+                                        #(reply! project "mcp/addServer" (:requestId data) %))
+          "mcp/removeServer" (request-then! client [:mcp/removeServer data]
+                                           #(reply! project "mcp/removeServer" (:requestId data) %))
+          "providers/list" (request-then! client [:providers/list {}]
+                                         #(reply! project "providers/list" (:requestId data) %))
+          "providers/login" (request-then! client [:providers/login data]
+                                          #(reply! project "providers/login" (:requestId data) %))
+          "providers/loginInput" (request-then! client [:providers/loginInput data]
+                                               #(reply! project "providers/loginInput" (:requestId data) %))
+          "providers/logout" (request-then! client [:providers/logout data]
+                                           #(reply! project "providers/logout" (:requestId data) %))
           "editor/readInput" (app-manager/invoke-later!
                               {:invoke-fn (fn []
                                             (let [user-input (Messages/showInputDialog
@@ -446,21 +454,12 @@
           ;; the in-editor LightVirtualFile already provided by
           ;; `editor/openServerLogs`, so we just reuse that flow here.
           (server-logs/open-server-logs! project)
-          "jobs/list" (future
-                       (let [result @(api/request! client [:jobs/list {}])]
-                         (send-msg! project {:type "jobs/list"
-                                             :data (merge {:requestId (:requestId data)}
-                                                          result)})))
-          "jobs/readOutput" (future
-                              (let [result @(api/request! client [:jobs/readOutput {:job-id (:jobId data)}])]
-                                (send-msg! project {:type "jobs/readOutput"
-                                                    :data (merge {:requestId (:requestId data)}
-                                                                 result)})))
-          "jobs/kill" (future
-                        (let [result @(api/request! client [:jobs/kill {:job-id (:jobId data)}])]
-                          (send-msg! project {:type "jobs/kill"
-                                              :data (merge {:requestId (:requestId data)}
-                                                           result)})))
+          "jobs/list" (request-then! client [:jobs/list {}]
+                                    #(reply! project "jobs/list" (:requestId data) %))
+          "jobs/readOutput" (request-then! client [:jobs/readOutput {:job-id (:jobId data)}]
+                                          #(reply! project "jobs/readOutput" (:requestId data) %))
+          "jobs/kill" (request-then! client [:jobs/kill {:job-id (:jobId data)}]
+                                    #(reply! project "jobs/kill" (:requestId data) %))
           "editor/openServerLogs" (server-logs/open-server-logs! project)
           "chat/answerQuestion" (let [request-id (:requestId data)]
                                   (when-let [p (get @pending-questions request-id)]
@@ -498,6 +497,29 @@
                 (when wrapper
                   (spit (.getFile wrapper) (:content data) :encoding "UTF-8"))))})
           (logger/warn "Unknown webview message type:" type)))))
+  nil)
+
+(defonce ^:private ^ExecutorService message-executor
+  (Executors/newSingleThreadExecutor
+   (reify ThreadFactory
+     (newThread [_ runnable]
+       (doto (Thread. ^Runnable runnable "ECA webview messages")
+         (.setDaemon true)
+         (.setContextClassLoader (.getClassLoader ClojureClassLoader)))))))
+
+(defn dispatch!
+  "Queues MSG from the webview for `handle` on a dedicated thread, in
+   arrival order. This is what the JBCefJSQuery handler calls: it runs on
+   the JCEF UI thread and has to return right away, since while that
+   thread is busy the browser neither processes input nor runs the
+   JavaScript `send-msg!` posts, and the whole panel looks dead."
+  [msg ^Project project]
+  (.execute message-executor
+            (fn []
+              (try
+                (handle msg project)
+                (catch Throwable e
+                  (logger/error "Error handling webview message:" e)))))
   nil)
 
 (defmethod api/config-updated :default

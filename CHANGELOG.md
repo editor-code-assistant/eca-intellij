@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix chat panel freezing (Enter and clicks ignored) while waiting on the server, most visibly `/login anthropic` hanging for 5 minutes: webview messages no longer block the JCEF thread and a pending `chat/askQuestion` no longer stalls other server messages.
+
 ## 0.31.2
 
 - Bump `eca-webview`: show the model and variant a subagent is running with in the `spawn_agent` card.

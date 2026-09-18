@@ -9,9 +9,10 @@
        per-test scratch slot.
 
      * `with-stub-bridge` -- replaces the IO-touching seams in
-       `webview.clj` (`send-msg!`, `api/connected-client`, `api/request!`,
-       `api/notify!`, `app-manager/invoke-later!`, `read-action!`,
-       `current-selected-editor`) with capture-and-stub fns. Tests then
+       `webview.clj` (`send-msg!`, `async!`, `api/connected-client`,
+       `api/request!`, `api/notify!`, `app-manager/invoke-later!`,
+       `read-action!`, `current-selected-editor`) with capture-and-stub
+       fns, running the async seam inline. Tests then
        assert on captured messages with `sent-to-webview` /
        `sent-to-server` rather than having to wire up real JCEF or a live
        ECA process."
@@ -133,6 +134,7 @@
    fresh bridge bound to `bridge-sym`:
 
      - `webview/send-msg!`              capture msg into bridge
+     - `webview/async!`                 run f inline (no worker thread)
      - `webview/current-selected-editor` nil (no editor active)
      - `api/connected-client`           ::stub-client sentinel
      - `api/request!`                   record + deliver pre-staged
@@ -145,6 +147,7 @@
      (with-redefs
        [webview/send-msg! (fn [_project# msg#]
                             (swap! (:sent-to-webview ~bridge-sym) conj msg#))
+        webview/async! (fn [f#] (f#) nil)
         webview/current-selected-editor (constantly nil)
         api/connected-client (constantly ::stub-client)
         api/request! (fn [_client# args#]

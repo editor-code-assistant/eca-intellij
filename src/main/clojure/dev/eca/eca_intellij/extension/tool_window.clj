@@ -211,7 +211,9 @@
     (db/assoc-in project [:webview-browser] browser)
     (db/assoc-in project [:webview-ready?] false)
     (Disposer/register project browser)
-    (.addHandler js-query (fn [msg] (webview/handle msg project)))
+    ;; The handler runs on the JCEF UI thread; `dispatch!` hands the
+    ;; message off so the browser is never blocked waiting on the server.
+    (.addHandler js-query (fn [msg] (webview/dispatch! msg project)))
     (.registerSchemeHandlerFactory
      (CefApp/getInstance) "http" "eca" (EcaSchemeHandlerFactory.))
     (.registerSchemeHandlerFactory
