@@ -3,6 +3,7 @@
    multimethods that forward chat notifications back to the webview.
    Recent regressions have a named test pinned to their commit hash."
   (:require
+   [cheshire.core :as json]
    [clojure.test :refer [deftest is testing]]
    [dev.eca.eca-intellij.api :as api]
    [dev.eca.eca-intellij.test-fixtures :as fixt]
@@ -136,9 +137,9 @@
           (is (= "code-reviewer" (:agent body))))))))
 
 (deftest chat-content-received-forwards-verbatim-to-webview
-  (testing "Server emits per-token streaming via chat/contentReceived;
-            the host MUST forward verbatim (no aggregation) so the
-            React app renders one token at a time."
+  (testing "Content alone in its batch window (low-rate streaming; the
+            stub bridge flushes right away) still reaches the webview
+            verbatim as a plain chat/contentReceived."
     (fixt/with-test-project [project]
       (fixt/with-stub-bridge bridge
         (api/chat-content-received {:project project}
@@ -161,6 +162,82 @@
                (mapv #(get-in % [:data :content]) msgs))
             "ordering relies on lsp4clj pipeline-blocking parallelism=1
              -- verify the host forward path itself does not reorder")))))
+
+(defn ^:private prepare-chunk [i]
+  {:chat-id "c1"
+   :role "assistant"
+   :content {:type "toolCallPrepare" :id "t1" :name "write_file" :arguments-text (str "chunk-" i)}})
+
+(defn ^:private run-flushes! [flushes*]
+  (let [fs @flushes*]
+    (reset! flushes* [])
+    (doseq [f fs] (f))))
+
+(deftest chat-content-burst-is-sent-as-one-batch
+  (testing "Regression for p-himik's report of IntelliJ at ~100% CPU while
+            a long write_file streamed: every argument delta was posted as
+            its own chat/contentReceived, one JS eval plus one React render
+            each. Content arriving within the batch window must reach the
+            webview as a single chat/batchContentReceived, in server order."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (let [flushes* (atom [])]
+          (with-redefs [webview/schedule-content-flush! (fn [f] (swap! flushes* conj f) nil)]
+            (doseq [i (range 3)]
+              (api/chat-content-received {:project project} (prepare-chunk i)))
+            (is (empty? (fixt/sent-to-webview bridge)) "nothing is posted before the window ends")
+            (is (= 1 (count @flushes*)) "one flush per window, not per event")
+            (run-flushes! flushes*)
+            (is (= [{:type "chat/batchContentReceived"
+                     :data (mapv prepare-chunk (range 3))}]
+                   (fixt/sent-to-webview bridge)))
+            (is (= {"chatId" "c1"
+                    "role" "assistant"
+                    "content" {"type" "toolCallPrepare" "id" "t1" "name" "write_file" "argumentsText" "chunk-0"}}
+                   (-> (fixt/sent-to-webview bridge) first fixt/msg->json json/parse-string (get-in ["data" 0])))
+                "batched events keep the camelCase shape the webview reads")))))))
+
+(deftest buffered-chat-content-is-posted-before-later-messages
+  (testing "chat/statusChanged idle makes the webview finish the turn, so it
+            must never overtake content the server sent before it."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (with-redefs [webview/schedule-content-flush! (constantly nil)]
+          (api/chat-content-received {:project project} (prepare-chunk 0))
+          (api/chat-content-received {:project project} (prepare-chunk 1))
+          (api/chat-status-changed {:project project} {:chat-id "c1" :status "idle"})
+          (is (= ["chat/batchContentReceived" "chat/statusChanged"]
+                 (mapv :type (fixt/sent-to-webview bridge)))))))))
+
+(deftest tool-called-is-never-batched
+  (testing "The webview refreshes the editor after write tools only from its
+            chat/contentReceived listener, so toolCalled flushes what is
+            buffered and goes out alone."
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (with-redefs [webview/schedule-content-flush! (constantly nil)]
+          (api/chat-content-received {:project project} (prepare-chunk 0))
+          (api/chat-content-received {:project project} (prepare-chunk 1))
+          (api/chat-content-received {:project project}
+                                     {:chat-id "c1"
+                                      :role "assistant"
+                                      :content {:type "toolCalled" :id "t1" :name "write_file"}})
+          (let [msgs (fixt/sent-to-webview bridge)]
+            (is (= ["chat/batchContentReceived" "chat/contentReceived"] (mapv :type msgs)))
+            (is (= "toolCalled" (get-in (last msgs) [:data :content :type])))))))))
+
+(deftest chat-content-batch-is-capped
+  (fixt/with-test-project [project]
+    (fixt/with-stub-bridge bridge
+      (with-redefs [webview/schedule-content-flush! (constantly nil)]
+        (let [cap @#'webview/content-batch-max-events]
+          (doseq [i (range (inc cap))]
+            (api/chat-content-received {:project project} (prepare-chunk i)))
+          (is (= [cap] (mapv (comp count :data) (fixt/webview-of-type bridge "chat/batchContentReceived")))
+              "a full batch is posted without waiting for the window")
+          (#'webview/flush-content! project)
+          (is (= (prepare-chunk cap) (:data (fixt/last-to-webview-of-type bridge "chat/contentReceived")))
+              "the event after the cap starts a new batch"))))))
 
 (deftest query-context-round-trips-result
   (fixt/with-test-project [project]

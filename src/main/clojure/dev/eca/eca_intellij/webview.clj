@@ -30,7 +30,7 @@
    [com.intellij.util.ui JBUI$CurrentTheme$ToolWindow]
    [java.awt Color]
    [java.util Base64]
-   [java.util.concurrent ExecutorService Executors ThreadFactory]))
+   [java.util.concurrent ExecutorService Executors ScheduledExecutorService ThreadFactory TimeUnit]))
 
 (set! *warn-on-reflection* true)
 
@@ -134,7 +134,7 @@
         (theme-css-map))
        "}"))
 
-(defn ^:private send-msg! [^Project project msg]
+(defn ^:private post-msg! [^Project project msg]
   (when-let [browser ^JBCefBrowser (db/get-in project [:webview-browser])]
     (let [cef-browser (.getCefBrowser browser)]
       (.executeJavaScript (.getCefBrowser browser)
@@ -142,6 +142,84 @@
                                   (json/generate-string (shared/map->camel-cased-map msg)))
                           (.getURL cef-browser)
                           0))))
+
+(def ^:private content-batch-ms
+  "How long streamed chat content may wait before being posted to the
+   webview. Same window as eca-desktop's bridge."
+  33)
+
+(def ^:private content-batch-max-events 200)
+
+;; Serializes every post to the webview, so buffered chat content is never
+;; overtaken by a message sent after that content arrived.
+(defonce ^:private send-lock (Object.))
+
+;; project -> {:events [chat/contentReceived params ...] :scheduled? bool}
+(defonce ^:private content-batches* (atom {}))
+
+(defonce ^:private ^ScheduledExecutorService content-flush-executor
+  (Executors/newSingleThreadScheduledExecutor
+   (reify ThreadFactory
+     (newThread [_ runnable]
+       (doto (Thread. ^Runnable runnable "ECA webview content batcher")
+         (.setDaemon true)
+         (.setContextClassLoader (.getClassLoader ClojureClassLoader)))))))
+
+(defn ^:private schedule-content-flush!
+  "Runs F once the batch window is over. Extracted so tests decide when
+   buffered content is flushed."
+  [f]
+  (.schedule content-flush-executor
+             ^Runnable (fn []
+                         (try
+                           (f)
+                           (catch Throwable e
+                             (logger/error "Error posting chat content to webview:" e))))
+             (long content-batch-ms)
+             TimeUnit/MILLISECONDS)
+  nil)
+
+(defn ^:private flush-content!
+  "Posts the chat content buffered for PROJECT, if any: a single event as
+   `chat/contentReceived`, several as one `chat/batchContentReceived`,
+   which the webview applies in a single state update and render."
+  [^Project project]
+  (locking send-lock
+    (let [events (get-in @content-batches* [project :events])]
+      (swap! content-batches* dissoc project)
+      (case (count events)
+        0 nil
+        1 (post-msg! project {:type "chat/contentReceived" :data (first events)})
+        (post-msg! project {:type "chat/batchContentReceived" :data events})))))
+
+(defn ^:private enqueue-content!
+  "Buffers a chat/contentReceived for the webview. Long tool calls stream
+   thousands of tiny argument deltas, and posting each one (a JS eval plus
+   a React render) pegged the CPU for the whole stream."
+  [^Project project params]
+  (locking send-lock
+    (if (= "toolCalled" (get-in params [:content :type]))
+      ;; The webview refreshes the editor after write tools only from its
+      ;; single-event listener, so toolCalled is never batched.
+      (do (flush-content! project)
+          (post-msg! project {:type "chat/contentReceived" :data params}))
+      (let [{:keys [events scheduled?]} (get (swap! content-batches* update-in [project :events] (fnil conj []) params)
+                                             project)]
+        (cond
+          (>= (count events) content-batch-max-events)
+          (flush-content! project)
+
+          (not scheduled?)
+          (do (swap! content-batches* assoc-in [project :scheduled?] true)
+              (schedule-content-flush! #(flush-content! project))))))))
+
+(defn ^:private send-msg!
+  "Posts MSG to the webview right after any buffered chat content, so the
+   webview sees everything in the order the server sent it."
+  [^Project project msg]
+  (locking send-lock
+    (flush-content! project)
+    (post-msg! project msg)))
 
 (defn ^:private request-then!
   "Sends REQ to the server right away, keeping the order webview messages
@@ -535,8 +613,7 @@
 
 (defmethod api/chat-content-received :default
   [{:keys [project]} params]
-  (send-msg! project {:type "chat/contentReceived"
-                      :data params})
+  (enqueue-content! project params)
   (inline-chat/on-content-received project params))
 
 (defmethod api/chat-cleared :default

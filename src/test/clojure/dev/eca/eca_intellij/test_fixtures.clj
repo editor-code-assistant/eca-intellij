@@ -9,10 +9,11 @@
        per-test scratch slot.
 
      * `with-stub-bridge` -- replaces the IO-touching seams in
-       `webview.clj` (`send-msg!`, `async!`, `api/connected-client`,
-       `api/request!`, `api/notify!`, `app-manager/invoke-later!`,
-       `read-action!`, `current-selected-editor`) with capture-and-stub
-       fns, running the async seam inline. Tests then
+       `webview.clj` (`post-msg!`, `schedule-content-flush!`, `async!`,
+       `api/connected-client`, `api/request!`, `api/notify!`,
+       `app-manager/invoke-later!`, `read-action!`,
+       `current-selected-editor`) with capture-and-stub fns, running the
+       async seams inline. Tests then
        assert on captured messages with `sent-to-webview` /
        `sent-to-server` rather than having to wire up real JCEF or a live
        ECA process."
@@ -91,7 +92,7 @@
                 (atom {})))
 
 (defn sent-to-webview
-  "Every message `send-msg!` would have shipped to the React app, in
+  "Every message `post-msg!` would have shipped to the React app, in
    order. Each entry is the raw Clojure map captured before the
    camel-case + cheshire trip -- use `msg->json` when a test wants to
    assert on byte-for-byte JSON shape."
@@ -133,7 +134,9 @@
   "Run `body` with every IO seam in webview.clj redirected through a
    fresh bridge bound to `bridge-sym`:
 
-     - `webview/send-msg!`              capture msg into bridge
+     - `webview/post-msg!`              capture msg into bridge
+     - `webview/schedule-content-flush!` flush buffered chat content
+                                        right away (no batch window)
      - `webview/async!`                 run f inline (no worker thread)
      - `webview/current-selected-editor` nil (no editor active)
      - `api/connected-client`           ::stub-client sentinel
@@ -145,8 +148,9 @@
   [bridge-sym & body]
   `(let [~bridge-sym (bridge-stub)]
      (with-redefs
-       [webview/send-msg! (fn [_project# msg#]
+       [webview/post-msg! (fn [_project# msg#]
                             (swap! (:sent-to-webview ~bridge-sym) conj msg#))
+        webview/schedule-content-flush! (fn [f#] (f#) nil)
         webview/async! (fn [f#] (f#) nil)
         webview/current-selected-editor (constantly nil)
         api/connected-client (constantly ::stub-client)
@@ -172,7 +176,7 @@
 
 (defn msg->json
   "Serialize a captured outbound message through the same path
-   send-msg! takes in production (kebab->camel keys, then cheshire).
+   post-msg! takes in production (kebab->camel keys, then cheshire).
    Useful when a test wants to assert on the literal JSON shape."
   [msg]
   (json/generate-string (shared/map->camel-cased-map msg)))

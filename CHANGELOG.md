@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Fix high CPU while a long tool call streams (e.g. writing a big file): streamed chat content is now batched before reaching the webview.
+- Bump `eca-webview`: streaming tool call args render as plain text, interrupted tool calls no longer spin forever, questions answered by another client are cleared.
+
 ## 0.31.3
 
 - Fix chat panel freezing (Enter and clicks ignored) while waiting on the server, most visibly `/login anthropic` hanging for 5 minutes: webview messages no longer block the JCEF thread and a pending `chat/askQuestion` no longer stalls other server messages.
