@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.31.4
+
 - Fix high CPU while a long tool call streams (e.g. writing a big file): streamed chat content is now batched before reaching the webview.
 - Bump `eca-webview`: streaming tool call args render as plain text, interrupted tool calls no longer spin forever, questions answered by another client are cleared.
 
