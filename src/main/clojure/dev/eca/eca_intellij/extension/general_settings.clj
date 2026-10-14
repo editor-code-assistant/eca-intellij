@@ -17,7 +17,7 @@
 (defonce ^:private component* (atom nil))
 
 (def ^:private default-usage-string-format
-  "{sessionTokens} / {contextLimit} ({sessionCost})")
+  "{sessionTokens} / {contextLimit} ({sessionCost}{quota})")
 
 (defn ^:private build-component [settings]
   (let [custom-server-path (:server-path settings)

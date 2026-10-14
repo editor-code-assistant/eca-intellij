@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Show subscription quota instead of costs in chat usage and provider settings (bump `eca-webview`), the default usage string format now includes `{quota}`.
+
 ## 0.31.4
 
 - Fix high CPU while a long tool call streams (e.g. writing a big file): streamed chat content is now batched before reaching the webview.
