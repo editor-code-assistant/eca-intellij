@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bump `eca-webview`: markdown lists in chat now show bullets and indentation instead of reading as plain lines of text.
+
 ## 0.32.0
 
 - Show subscription quota instead of costs in chat usage and provider settings (bump `eca-webview`), the default usage string format now includes `{quota}`.
