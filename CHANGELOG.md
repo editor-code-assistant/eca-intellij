@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.32.1
+
 - Bump `eca-webview`: markdown lists in chat now show bullets and indentation instead of reading as plain lines of text.
 
 ## 0.32.0
