@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Show the output tokens per second of the last model response next to the chat usage, e.g. `87 tok/s` (bump `eca-webview`).
+
 ## 0.32.1
 
 - Bump `eca-webview`: markdown lists in chat now show bullets and indentation instead of reading as plain lines of text.
