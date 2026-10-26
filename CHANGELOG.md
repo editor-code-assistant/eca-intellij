@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.33.0
+
 - Show the output tokens per second of the last model response next to the chat usage, e.g. `87 tok/s` (bump `eca-webview`).
 
 ## 0.32.1
