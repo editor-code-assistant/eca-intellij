@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.34.0
+
 - Show the progress running tool calls report, e.g. MCP progress notifications: `3/10 · Indexing files` in the chat (bump `eca-webview`) and in the inline chat status.
 
 ## 0.33.0
