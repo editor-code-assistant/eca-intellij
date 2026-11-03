@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Show the progress running tool calls report, e.g. MCP progress notifications: `3/10 · Indexing files` in the chat (bump `eca-webview`) and in the inline chat status.
+
 ## 0.33.0
 
 - Show the output tokens per second of the last model response next to the chat usage, e.g. `87 tok/s` (bump `eca-webview`).

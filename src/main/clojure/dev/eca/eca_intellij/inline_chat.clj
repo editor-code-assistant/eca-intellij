@@ -46,6 +46,31 @@
 (defn ^:private drop-pending [pending-tools id]
   (into [] (remove #(= id (first %))) pending-tools))
 
+(defn ^:private progress-number
+  "Progress number N without float noise, e.g. 0.3333 as 0.33 and 1.0 as 1."
+  [n]
+  (let [rounded (/ (Math/round (* (double n) 100.0)) 100.0)]
+    (if (== rounded (Math/floor rounded))
+      (str (long rounded))
+      (str rounded))))
+
+(defn ^:private progress-info
+  "Progress a running tool reports, to append to its status as eca-emacs
+   does: \" (3/10 · Indexing files)\", just the message when the total is
+   unknown, or just the progress when there is no message either. Values
+   come verbatim from MCP servers, so each one is checked before use."
+  [{:keys [progress total message]}]
+  (let [value (when (number? progress) progress)
+        total (when (number? total) total)
+        message (when (string? message) (not-empty (string/trim message)))
+        count-text (cond
+                     (and value total) (str (progress-number value) "/" (progress-number total))
+                     (and value (not message)) (progress-number value))
+        text (string/join " · " (remove nil? [count-text message]))]
+    (if (string/blank? text)
+      ""
+      (str " (" text ")"))))
+
 (defn transition
   "Return STATE updated for a chat content EVENT {:role r :content c}.
    Mirrors the eca-emacs/eca-vscode inline content mapping. CONTENT keys
@@ -95,11 +120,13 @@
                :state :running))
 
       ;; Approved (possibly from another client): no longer pending.
+      ;; Re-sent while the tool runs with the progress it reports.
       "toolCallRunning"
       (let [pending (drop-pending (:pending-tools state) id)]
         (assoc state
                :pending-tools pending
-               :status (or summary (str "Running tool " tool-name "..."))
+               :status (str (or summary (str "Running tool " tool-name "..."))
+                            (progress-info (:progress content)))
                :state :running))
 
       "toolCalled"

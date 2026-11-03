@@ -106,6 +106,39 @@
           s (inline-chat/transition pending (evt "assistant" {:type "toolCallRejected" :id "1" :name "a"}))]
       (is (= "Tool call rejected" (:status s))))))
 
+(defn ^:private status-with-progress
+  "Inline status after a toolCallRunning re-sent with PROGRESS, plus EXTRA content keys."
+  ([progress] (status-with-progress progress {}))
+  ([progress extra]
+   (:status (inline-chat/transition running-state
+                                    (evt "assistant" (merge {:type "toolCallRunning" :id "1" :name "index"
+                                                             :progress progress}
+                                                            extra))))))
+
+(deftest transition-tool-call-progress
+  (testing "progress a running tool reports is appended to its status, as in eca-emacs inline overlays"
+    (is (= "Running tool index... (3/10 · Indexing files)"
+           (status-with-progress {:progress 3 :total 10 :message "Indexing files"})))
+    (is (= "Running tool index... (3/10)"
+           (status-with-progress {:progress 3 :total 10})))
+    (is (= "Running tool index... (Indexing files)"
+           (status-with-progress {:progress 3 :message "Indexing files"}))
+        "only the message when the total is unknown")
+    (is (= "Running tool index... (42)"
+           (status-with-progress {:progress 42}))
+        "only the progress when there is no message either"))
+  (testing "fractions are rounded and whole floats drop their zero fraction"
+    (is (= "Running tool index... (0.67/1)"
+           (status-with-progress {:progress 0.6667 :total 1.0}))))
+  (testing "the summary is kept and blank messages are ignored"
+    (is (= "Indexing repo (5/8)"
+           (status-with-progress {:progress 5 :total 8 :message "  "} {:summary "Indexing repo"}))))
+  (testing "malformed or missing progress leaves the plain status"
+    (is (= "Running tool index..."
+           (status-with-progress {:progress "3" :total nil :message 7})))
+    (is (= "Running tool index..."
+           (status-with-progress nil)))))
+
 (deftest transition-unknown-content-is-ignored
   (is (= running-state
          (inline-chat/transition running-state (evt "assistant" {:type "usage" :sessionTokens 10})))))
