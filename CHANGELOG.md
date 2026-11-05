@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.34.1
+
 - Fix chat rollback ignoring the chosen type: it always rolled back both the messages and the tool call changes, reverting files when only the messages were picked.
 
 ## 0.34.0
