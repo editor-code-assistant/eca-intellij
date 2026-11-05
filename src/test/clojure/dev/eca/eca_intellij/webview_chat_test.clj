@@ -6,6 +6,7 @@
    [cheshire.core :as json]
    [clojure.test :refer [deftest is testing]]
    [dev.eca.eca-intellij.api :as api]
+   [dev.eca.eca-intellij.editor :as editor]
    [dev.eca.eca-intellij.test-fixtures :as fixt]
    [dev.eca.eca-intellij.webview :as webview]))
 
@@ -135,6 +136,34 @@
           (is (= :notify kind))
           (is (= "chat-9" (:chatId body)))
           (is (= "code-reviewer" (:agent body))))))))
+
+(defn ^:private rollback-picking! [project option]
+  (with-redefs [editor/quick-pick (fn [& _] (doto (promise) (deliver option)))]
+    (webview/handle
+     (fixt/to-json-payload {:type "chat/rollback"
+                            :data {:chatId "chat-3" :contentId "msg-1"}})
+     project)))
+
+(deftest rollback-forwards-the-chosen-rollback-type
+  (testing "Regression 4ac0975: the chosen rollback type was sent as
+            `includes`, a key the server does not know, so it always
+            rolled back both the messages and the tool call changes,
+            reverting files when only the messages were picked."
+    (doseq [[option-id include] [[:rollback-messages-and-tools ["messages" "tools"]]
+                                 [:rollback-only-messages ["messages"]]
+                                 [:rollback-only-tools ["tools"]]]]
+      (fixt/with-test-project [project]
+        (fixt/with-stub-bridge bridge
+          (rollback-picking! project {:id option-id})
+          (let [[kind _method body] (fixt/last-to-server-of bridge :chat/rollback)]
+            (is (= :request kind))
+            (is (= {:chatId "chat-3" :contentId "msg-1" :include include}
+                   body)))))))
+  (testing "dismissing the rollback type picker sends nothing"
+    (fixt/with-test-project [project]
+      (fixt/with-stub-bridge bridge
+        (rollback-picking! project nil)
+        (is (empty? (fixt/sent-to-server bridge)))))))
 
 (deftest chat-content-received-forwards-verbatim-to-webview
   (testing "Content alone in its batch window (low-rate streaming; the

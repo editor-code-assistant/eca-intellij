@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix chat rollback ignoring the chosen type: it always rolled back both the messages and the tool call changes, reverting files when only the messages were picked.
+
 ## 0.34.0
 
 - Show the progress running tool calls report, e.g. MCP progress notifications: `3/10 · Indexing files` in the chat (bump `eca-webview`) and in the inline chat status.

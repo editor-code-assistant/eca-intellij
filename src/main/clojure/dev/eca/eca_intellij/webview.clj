@@ -409,12 +409,12 @@
                                                           {:title "Select which rollback type"})]
                             (async!
                              (fn []
-                               (when-let [includes (case (:id @option)
-                                                     :rollback-messages-and-tools ["messages" "tools"]
-                                                     :rollback-only-messages ["messages"]
-                                                     :rollback-only-tools ["tools"]
-                                                     nil)]
-                                 (api/request! client [:chat/rollback (assoc data :includes includes)])))))
+                               (when-let [include (case (:id @option)
+                                                    :rollback-messages-and-tools ["messages" "tools"]
+                                                    :rollback-only-messages ["messages"]
+                                                    :rollback-only-tools ["tools"]
+                                                    nil)]
+                                 (api/request! client [:chat/rollback (assoc data :include include)])))))
           ;; Resume-picker support. The webview asks for the list of
           ;; persisted chats; on click of a row it sends `chat/open`
           ;; which causes the server to emit `chat/cleared` →
