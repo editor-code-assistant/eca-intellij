@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Roll the chat back to a flag from its line: the flag stays and only what came after it goes, on servers supporting it (bump `eca-webview`).
+- Show why a provider login failed on its card instead of a Login button spinning until it times out (bump `eca-webview`).
+
 ## 0.34.1
 
 - Fix chat rollback ignoring the chosen type: it always rolled back both the messages and the tool call changes, reverting files when only the messages were picked.
