@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.35.0
+
 - Roll the chat back to a flag from its line: the flag stays and only what came after it goes, on servers supporting it (bump `eca-webview`).
 - Show why a provider login failed on its card instead of a Login button spinning until it times out (bump `eca-webview`).
 
