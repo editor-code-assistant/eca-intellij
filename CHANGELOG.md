@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.35.1
+
 - Show what each turn used under its answer, e.g. `claude-sonnet-4-5 · 9.8s · 412 output tokens · $0.03`, also in reopened chats, on servers supporting it (bump `eca-webview`).
 
 ## 0.35.0
