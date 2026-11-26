@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Show what each turn used under its answer, e.g. `claude-sonnet-4-5 · 9.8s · 412 output tokens · $0.03`, also in reopened chats, on servers supporting it (bump `eca-webview`).
+
 ## 0.35.0
 
 - Roll the chat back to a flag from its line: the flag stays and only what came after it goes, on servers supporting it (bump `eca-webview`).
