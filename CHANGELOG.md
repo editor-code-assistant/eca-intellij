@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Show the speed of each turn under its answer, e.g. `412 output tokens · 87 tok/s`, out of the subheader once it ended, on servers supporting it (bump `eca-webview`).
+
 ## 0.35.1
 
 - Show what each turn used under its answer, e.g. `claude-sonnet-4-5 · 9.8s · 412 output tokens · $0.03`, also in reopened chats, on servers supporting it (bump `eca-webview`).
