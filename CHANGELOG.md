@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.35.2
+
 - Show the speed of each turn under its answer, e.g. `412 output tokens · 87 tok/s`, out of the subheader once it ended, on servers supporting it (bump `eca-webview`).
 
 ## 0.35.1
